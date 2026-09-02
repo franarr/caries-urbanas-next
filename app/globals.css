@@ -74,7 +74,7 @@ h5, .type-h5 { font-family: var(--font-heading); font-size: 16px; font-weight: 7
 #loading-screen { position: fixed; inset: 0; z-index: 10000; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 #loading-screen.done { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
 .loader-content { text-align: center; padding: 20px; }
-.loader-pin { margin: 0 auto 16px; animation: loaderBounce 1.4s ease-in-out infinite; }
+.loader-pin { display: flex; justify-content: center; margin: 0 auto 16px; animation: loaderBounce 1.4s ease-in-out infinite; }
 @keyframes loaderBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .loader-brand { font-family: var(--font-heading); font-size: 38px; font-weight: 800; color: var(--text-dark); letter-spacing: -0.8px; margin-bottom: 4px; line-height: 1.1; }
 .loader-text { font-family: var(--font-heading); font-size: 11px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 24px; }
