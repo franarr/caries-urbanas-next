@@ -5,10 +5,12 @@ import { gsap } from 'gsap';
 // FIX PARA NEXT.JS TURBOPACK: Forzar la ruta del Web Worker
 maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cariesbackend-production.up.railway.app/api';
+
 export function initMapApp() {
     /**
      * =====================================================
-     * CARIES URBANAS — WebGIS v2.2
+     * CARIES URBANAS — WebGIS v3.0 (API Real)
      * Observatorio Urbano · Santa Fe, Argentina
      * =====================================================
      */
@@ -18,8 +20,10 @@ export function initMapApp() {
         zoom: 12.5,
         minZoom: 10,
         maxZoom: 18,
-        geojsonPath: '/data/caries_puntos.geojson',
-        distritosPath: '/data/distritos.geojson',
+        geojsonPath: `${API_URL}/public/inmuebles.geojson`,
+        heatmapPath: `${API_URL}/public/heatmap`,
+        fichaPublicaPath: `${API_URL}/public/inmuebles`,
+        denunciasPath: `${API_URL}/public/denuncias`,
         tileStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
         satelliteTiles: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         districtCenters: {
@@ -33,14 +37,18 @@ export function initMapApp() {
             'NORTE':    { center: [-60.712, -31.590], zoom: 13 },
             'LA COSTA': { center: [-60.660, -31.650], zoom: 12 }
         },
-        treatingIds: ['54','55','27','56','57','37','58','59','41','22'],
-        treatedIds: ['21','12','48','3','20','25']
+        // Mapeo de estado_registro de la API a colores y labels de la UI
+        statusMap: {
+            carga:       { color: '#E85D26', label: 'En carga',     chipLabel: 'En carga' },
+            en_revision: { color: '#F9A825', label: 'En revisión',  chipLabel: 'En revisión' },
+            confirmada:  { color: '#34A853', label: 'Confirmada',   chipLabel: 'Confirmadas' },
+        } as Record<string, { color: string; label: string; chipLabel: string }>
     };
 
     const State = {
         map: null as any,
         geojson: null as any,
-        distritos: null as any,
+        heatmapData: null as any,
         activeDistricts: [] as string[],
         activeStatus: 'all',
         isMeasuring: false,
@@ -65,26 +73,13 @@ export function initMapApp() {
         requestAnimationFrame(step);
     }
 
-    function assignStatus(geojson: any) {
-        const rous = ['R2a', 'C2b', 'C2', 'C2c', 'Otros'];
-        geojson.features.forEach((f: any, i: number) => {
-            const id = String(f.properties.nro);
-            if (CONFIG.treatedIds.includes(id)) f.properties.status = 'treated';
-            else if (CONFIG.treatingIds.includes(id)) f.properties.status = 'treating';
-            else f.properties.status = 'untreated';
-            
-            f.properties.rou = rous[i % rous.length];
-        });
-        return geojson;
-    }
-
     function getFiltered() {
         let features = State.geojson.features;
         if (State.activeDistricts.length > 0) {
             features = features.filter((f: any) => State.activeDistricts.includes(f.properties.distrito));
         }
         if (State.activeStatus !== 'all') {
-            features = features.filter((f: any) => f.properties.status === State.activeStatus);
+            features = features.filter((f: any) => f.properties.estado_registro === State.activeStatus);
         }
         return { type: 'FeatureCollection', features };
     }
@@ -105,13 +100,14 @@ export function initMapApp() {
     }
 
     async function loadData() {
-        const [geoRes, distRes] = await Promise.all([
+        const [geoRes, heatRes] = await Promise.all([
             fetch(CONFIG.geojsonPath),
-            fetch(CONFIG.distritosPath).catch(() => null)
+            fetch(CONFIG.heatmapPath).catch(() => null)
         ]);
-        State.geojson = assignStatus(await geoRes.json());
-        if (distRes && distRes.ok) {
-            State.distritos = await distRes.json();
+        if (!geoRes.ok) throw new Error(`Error al cargar inmuebles: ${geoRes.status}`);
+        State.geojson = await geoRes.json();
+        if (heatRes && heatRes.ok) {
+            State.heatmapData = await heatRes.json();
         }
     }
 
@@ -131,24 +127,21 @@ export function initMapApp() {
             layout: { visibility: 'visible' }
         }, map.getStyle().layers.find((l: any) => l.id.includes('water'))?.id);
 
-        if (State.distritos) {
-            map.addSource('distritos', { type: 'geojson', data: State.distritos });
+        // Distritos del heatmap (polígonos reales del backend con peso normalizado)
+        if (State.heatmapData) {
+            map.addSource('distritos', { type: 'geojson', data: State.heatmapData });
             map.addLayer({
                 id: 'distritos-fill',
                 type: 'fill',
                 source: 'distritos',
                 paint: {
                     'fill-color': [
-                        'match', ['get', 'name'],
-                        'NORTE', 'rgba(249,168,37,0.18)',
-                        'NOROESTE', 'rgba(175,180,43,0.18)',
-                        'ESTE', 'rgba(230,81,0,0.18)',
-                        'NORESTE', 'rgba(129,119,23,0.18)',
-                        'SUROESTE', 'rgba(121,85,72,0.18)',
-                        'OESTE', 'rgba(15,157,88,0.18)',
-                        'CENTRO', 'rgba(255,82,82,0.18)',
-                        'LA COSTA', 'rgba(85,139,47,0.18)',
-                        'rgba(255,255,255,0.1)'
+                        'interpolate', ['linear'], ['get', 'peso'],
+                        0, 'rgba(232, 93, 38, 0.05)',
+                        0.25, 'rgba(232, 93, 38, 0.12)',
+                        0.5, 'rgba(232, 93, 38, 0.22)',
+                        0.75, 'rgba(255, 122, 69, 0.35)',
+                        1, 'rgba(255, 82, 82, 0.45)'
                     ],
                     'fill-opacity': 0.85
                 }
@@ -164,7 +157,7 @@ export function initMapApp() {
                 type: 'symbol',
                 source: 'distritos',
                 layout: {
-                    'text-field': ['get', 'name'],
+                    'text-field': ['get', 'distrito'],
                     'text-font': ['Open Sans Bold'],
                     'text-size': 13,
                     'text-transform': 'uppercase',
@@ -204,7 +197,11 @@ export function initMapApp() {
             source: 'caries-points',
             paint: {
                 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3.5, 13, 6, 16, 10],
-                'circle-color': ['match', ['get', 'status'], 'treating', '#F9A825', 'treated', '#34A853', '#E85D26'],
+                'circle-color': ['match', ['get', 'estado_registro'],
+                    'en_revision', '#F9A825',
+                    'confirmada', '#34A853',
+                    '#E85D26'  // default: carga
+                ],
                 'circle-opacity': 0.95,
                 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
                 'circle-stroke-color': 'rgba(255,255,255,0.6)'
@@ -272,11 +269,12 @@ export function initMapApp() {
             if (State.activeDistricts.length > 0) {
                 base = all.filter((f: any) => State.activeDistricts.includes(f.properties.distrito));
             }
-            const count = base.filter((f: any) => f.properties.status === status).length;
+            const count = base.filter((f: any) => f.properties.estado_registro === status).length;
             const dot = chip.querySelector('.chip-dot');
+            const labelText = CONFIG.statusMap[status]?.chipLabel || status;
             chip.innerHTML = '';
             if (dot) chip.appendChild(dot);
-            chip.appendChild(document.createTextNode(`${chip.dataset.label || (status === 'untreated' ? 'Sin tratar' : status === 'treating' ? 'En tratamiento' : 'Tratadas')} · ${count}`));
+            chip.appendChild(document.createTextNode(`${labelText} · ${count}`));
             if (dot) chip.insertBefore(dot, chip.firstChild);
         });
     }
@@ -311,14 +309,19 @@ export function initMapApp() {
             const q = input.value.trim().toLowerCase();
             if (q.length < 2) { results.classList.add('hidden'); results.innerHTML = ''; return; }
             const matches = State.geojson.features
-                .filter((f: any) => (f.properties.ubicacion || '').toLowerCase().includes(q) || (f.properties.distrito || '').toLowerCase().includes(q) || String(f.properties.nro).includes(q))
+                .filter((f: any) =>
+                    (f.properties.direccion || '').toLowerCase().includes(q) ||
+                    (f.properties.nombre || '').toLowerCase().includes(q) ||
+                    (f.properties.distrito || '').toLowerCase().includes(q) ||
+                    String(f.properties.nro_relevamiento).includes(q)
+                )
                 .slice(0, 10);
             if (!matches.length) { results.classList.add('hidden'); results.innerHTML = ''; return; }
 
             results.innerHTML = matches.map((f: any) => `
-                <div class="search-result-item" data-nro="${f.properties.nro}">
+                <div class="search-result-item" data-id="${f.id}">
                     <div>
-                        <div><strong>#${f.properties.nro}</strong> — ${f.properties.ubicacion || 'Sin dirección'}</div>
+                        <div><strong>#${f.properties.nro_relevamiento || '—'}</strong> — ${f.properties.direccion || f.properties.nombre || 'Sin dirección'}</div>
                         <div class="result-district">${f.properties.distrito || ''}</div>
                     </div>
                 </div>
@@ -327,7 +330,7 @@ export function initMapApp() {
 
             results.querySelectorAll('.search-result-item').forEach((item: any) => {
                 item.addEventListener('click', () => {
-                    const feat = State.geojson.features.find((f: any) => String(f.properties.nro) === item.dataset.nro);
+                    const feat = State.geojson.features.find((f: any) => String(f.id) === item.dataset.id);
                     if (feat) { openDetail(feat); State.map.flyTo({ center: feat.geometry.coordinates, zoom: 16, duration: 1200 }); }
                     results.classList.add('hidden'); input.value = '';
                 });
@@ -337,9 +340,6 @@ export function initMapApp() {
     }
 
     function setupStatusChips() {
-        document.querySelectorAll('.quick-filters .chip[data-status]').forEach((c: any) => {
-            c.dataset.label = c.textContent.trim();
-        });
         document.querySelectorAll('.quick-filters .chip[data-status]').forEach((c: any) => {
             c.addEventListener('click', () => {
                 const status = c.dataset.status;
@@ -353,6 +353,8 @@ export function initMapApp() {
                 updateMapData(); updateStats();
             });
         });
+        // Set initial counts
+        updateChipCounts();
     }
 
     function setupLayersModal() {
@@ -387,7 +389,7 @@ export function initMapApp() {
         });
         document.getElementById('layer-districts')?.addEventListener('change', (e: any) => {
             const v = e.target.checked ? 'visible' : 'none';
-            if (State.distritos) {
+            if (State.heatmapData) {
                 State.map.setLayoutProperty('distritos-fill', 'visibility', v);
                 State.map.setLayoutProperty('distritos-line', 'visibility', v);
                 State.map.setLayoutProperty('distritos-label', 'visibility', v);
@@ -399,7 +401,7 @@ export function initMapApp() {
         const container = document.getElementById('district-checkboxes');
         if (!container) return;
         
-        const districts = [...new Set(State.geojson.features.map((f: any) => f.properties.distrito))].sort() as string[];
+        const districts = [...new Set(State.geojson.features.map((f: any) => f.properties.distrito).filter(Boolean))].sort() as string[];
         State.activeDistricts = [...districts];
         
         container.innerHTML = districts.map(d => `
@@ -518,18 +520,19 @@ export function initMapApp() {
     // ─── FEATURE DETAIL ──────────────────────────────────
     let currentPopup: any = null;
 
-    function openDetail(feat: any) {
+    async function openDetail(feat: any) {
         const p = feat.properties;
+        const featureId = feat.id; // El id está a nivel Feature, no en properties
         const detailEl = document.getElementById('feature-detail');
         if(!detailEl) return;
+
+        const statusInfo = CONFIG.statusMap[p.estado_registro] || { color: '#E85D26', label: p.estado_registro };
         
-        const statusColors: any = { treated: '#34A853', treating: '#F9A825', untreated: '#E85D26' };
-        const statusLabels: any = { treated: 'TRATADA', treating: 'EN TRATAMIENTO', untreated: 'SIN TRATAR' };
         const badge = document.getElementById('detail-badge');
         if(badge) {
-            badge.textContent = `LOTE #${p.nro || '—'}`;
-            badge.style.background = statusColors[p.status] ? `${statusColors[p.status]}18` : 'var(--accent-10)';
-            badge.style.color = statusColors[p.status] || 'var(--accent)';
+            badge.textContent = `LOTE #${p.nro_relevamiento || '—'}`;
+            badge.style.background = `${statusInfo.color}18`;
+            badge.style.color = statusInfo.color;
         }
 
         let statusPill = document.getElementById('detail-status-pill');
@@ -540,37 +543,104 @@ export function initMapApp() {
             badge.parentNode.insertBefore(statusPill, badge.nextSibling);
         }
         if(statusPill) {
-            statusPill.textContent = statusLabels[p.status] || '';
-            statusPill.style.background = statusColors[p.status] ? `${statusColors[p.status]}18` : 'transparent';
-            statusPill.style.color = statusColors[p.status] || 'transparent';
+            statusPill.textContent = statusInfo.label.toUpperCase();
+            statusPill.style.background = `${statusInfo.color}18`;
+            statusPill.style.color = statusInfo.color;
         }
 
         const setTxt = (id: string, txt: string) => { const e = document.getElementById(id); if(e) e.textContent = txt; };
-        setTxt('detail-title', p.ubicacion || 'Sin dirección');
-        setTxt('detail-address', p.ubicacion || '—');
+        setTxt('detail-title', p.direccion || p.nombre || 'Sin dirección');
+        setTxt('detail-address', p.direccion || '—');
         setTxt('detail-district', p.distrito || '—');
-        setTxt('detail-zone', `Zona ${p.zonainmob || '—'}`);
-        setTxt('detail-id', `#${p.nro || '—'}`);
+        setTxt('detail-zone', `Zona ${p.zona_inmobiliaria || '—'}`);
+        setTxt('detail-id', `#${p.nro_relevamiento || '—'}`);
+
+        // Mostrar datos extra de la ficha pública (descripción, manzana, etc.)
+        let descEl = document.getElementById('detail-desc');
+        if (!descEl) {
+            descEl = document.createElement('p');
+            descEl.id = 'detail-desc';
+            descEl.style.cssText = 'font-size:13px; color:var(--text-body); margin: 8px 0 12px; line-height:1.5; font-family:var(--font-body);';
+            const rowsEl = document.querySelector('.detail-rows');
+            if (rowsEl && rowsEl.parentNode) rowsEl.parentNode.insertBefore(descEl, rowsEl);
+        }
+        descEl.textContent = '';
+
+        // Fetch de la ficha pública ampliada (lazy, solo al abrir)
+        if (featureId) {
+            fetch(`${CONFIG.fichaPublicaPath}/${featureId}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(ficha => {
+                    if (!ficha) return;
+                    if (ficha.descripcion && descEl) {
+                        descEl.textContent = ficha.descripcion;
+                    }
+                    if (ficha.manzana) {
+                        let mzRow = document.getElementById('detail-row-manzana');
+                        if (!mzRow) {
+                            const rowsContainer = document.querySelector('.detail-rows');
+                            if (rowsContainer) {
+                                mzRow = document.createElement('div');
+                                mzRow.id = 'detail-row-manzana';
+                                mzRow.className = 'detail-row';
+                                mzRow.innerHTML = '<span class="detail-key">Manzana</span><span class="detail-val" id="detail-manzana">—</span>';
+                                rowsContainer.appendChild(mzRow);
+                            }
+                        }
+                        const mzVal = document.getElementById('detail-manzana');
+                        if (mzVal) mzVal.textContent = ficha.manzana;
+                    }
+                })
+                .catch(() => {}); // Silenciar errores de ficha (no bloquear la UI)
+        }
+
+        // Vecinal (ya viene en el GeoJSON)
+        let vecRow = document.getElementById('detail-row-vecinal');
+        if (!vecRow) {
+            const rowsContainer = document.querySelector('.detail-rows');
+            if (rowsContainer) {
+                vecRow = document.createElement('div');
+                vecRow.id = 'detail-row-vecinal';
+                vecRow.className = 'detail-row';
+                vecRow.innerHTML = '<span class="detail-key">Vecinal</span><span class="detail-val" id="detail-vecinal">—</span>';
+                // Insertar después del distrito
+                const distRow = document.querySelectorAll('.detail-row')[1];
+                if (distRow && distRow.nextSibling) {
+                    rowsContainer.insertBefore(vecRow, distRow.nextSibling);
+                } else {
+                    rowsContainer.appendChild(vecRow);
+                }
+            }
+        }
+        const vecVal = document.getElementById('detail-vecinal');
+        if (vecVal) vecVal.textContent = p.vecinal || '—';
+
+        // ROU row
+        let rouRow = document.getElementById('detail-row-rou');
+        if (!rouRow) {
+            const rowsContainer = document.querySelector('.detail-rows');
+            if (rowsContainer) {
+                rouRow = document.createElement('div');
+                rouRow.id = 'detail-row-rou';
+                rouRow.className = 'detail-row';
+                rouRow.innerHTML = '<span class="detail-key">ROU</span><span class="detail-val" id="detail-rou">—</span>';
+                rowsContainer.appendChild(rouRow);
+            }
+        }
+        const rouVal = document.getElementById('detail-rou');
+        if (rouVal) rouVal.textContent = p.rou || '—';
 
         const btnFly = document.getElementById('detail-btn-fly');
         if(btnFly) {
-            const addr = encodeURIComponent(`${p.ubicacion || ''}, Santa Fe, Argentina`);
+            const addr = encodeURIComponent(`${p.direccion || ''}, Santa Fe, Argentina`);
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${addr}`;
             btnFly.textContent = 'Ver en Google Maps →';
             btnFly.onclick = () => window.open(mapsUrl, '_blank', 'noopener');
         }
         
+        // No hay fotos por ahora (la API de media aún no existe)
         const imgContainer = document.getElementById('detail-image-container');
-        const imgElement = document.getElementById('detail-image') as HTMLImageElement;
-        if(imgContainer && imgElement) {
-            if (String(p.nro) === '174') {
-                imgElement.src = '/image/imagendejemplo.png';
-                imgContainer.style.display = 'block';
-            } else {
-                imgElement.src = '';
-                imgContainer.style.display = 'none';
-            }
-        }
+        if(imgContainer) imgContainer.style.display = 'none';
         
         if (window.innerWidth > 768) {
             if (currentPopup) currentPopup.remove();
@@ -622,46 +692,45 @@ export function initMapApp() {
     function updateStats() {
         const features = getFiltered().features;
         const dc: any = {}; features.forEach((f: any) => { dc[f.properties.distrito] = (dc[f.properties.distrito] || 0) + 1; });
-        const rouCounts: any = {}; features.forEach((f: any) => { rouCounts[f.properties.rou] = (rouCounts[f.properties.rou] || 0) + 1; });
+        const rouCounts: any = {}; features.forEach((f: any) => { if (f.properties.rou) rouCounts[f.properties.rou] = (rouCounts[f.properties.rou] || 0) + 1; });
         
         let maxD = '—', maxC = 0; for (const [d, c] of Object.entries(dc) as any) { if (c > maxC) { maxC = c; maxD = d; } }
         
         animateNum(document.getElementById('stat-total'), features.length);
         animateNum(document.getElementById('stat-districts'), new Set(features.map((f: any) => f.properties.distrito)).size);
-        animateNum(document.getElementById('stat-zones'), new Set(features.map((f: any) => f.properties.zonainmob)).size);
+        animateNum(document.getElementById('stat-zones'), new Set(features.map((f: any) => f.properties.zona_inmobiliaria).filter(Boolean)).size);
         const stCrit = document.getElementById('stat-critical');
         if(stCrit) stCrit.textContent = maxD;
 
-        const nTreated  = features.filter((f: any) => f.properties.status === 'treated').length;
-        const nTreating = features.filter((f: any) => f.properties.status === 'treating').length;
-        const nUntreated= features.filter((f: any) => f.properties.status === 'untreated').length;
+        // Usar estado_registro real de la API
+        const nConfirmada  = features.filter((f: any) => f.properties.estado_registro === 'confirmada').length;
+        const nEnRevision  = features.filter((f: any) => f.properties.estado_registro === 'en_revision').length;
+        const nCarga       = features.filter((f: any) => f.properties.estado_registro === 'carga').length;
         const total = features.length || 1;
         const CIRC = 251.3;
 
-        const pTreated  = nTreated  / total;
-        const pTreating = nTreating / total;
-        const pUntreated= nUntreated/ total;
+        const pConfirmada = nConfirmada / total;
+        const pEnRevision = nEnRevision / total;
+        const pCarga      = nCarga / total;
 
-        const dTreated  = pTreated  * CIRC;
-        const dTreating = pTreating * CIRC;
-        const dUntreated= pUntreated* CIRC;
-
-        const oTreated  = 0;
+        const dConfirmada = pConfirmada * CIRC;
+        const dEnRevision = pEnRevision * CIRC;
+        const dCarga      = pCarga * CIRC;
 
         const elT  = document.getElementById('donut-treated');
         const elTg = document.getElementById('donut-treating');
         const elU  = document.getElementById('donut-untreated');
 
-        if (elT)  { elT.setAttribute('stroke-dasharray',  `${dTreated}  ${CIRC - dTreated}`);  elT.setAttribute('stroke-dashoffset', '0'); }
-        if (elTg) { elTg.setAttribute('stroke-dasharray', `${dTreating} ${CIRC - dTreating}`); elTg.setAttribute('stroke-dashoffset', `-${dTreated}`); }
-        if (elU)  { elU.setAttribute('stroke-dasharray',  `${dUntreated} ${CIRC - dUntreated}`); elU.setAttribute('stroke-dashoffset', `-${dTreated + dTreating}`); }
+        if (elT)  { elT.setAttribute('stroke-dasharray',  `${dConfirmada}  ${CIRC - dConfirmada}`);  elT.setAttribute('stroke-dashoffset', '0'); }
+        if (elTg) { elTg.setAttribute('stroke-dasharray', `${dEnRevision} ${CIRC - dEnRevision}`); elTg.setAttribute('stroke-dashoffset', `-${dConfirmada}`); }
+        if (elU)  { elU.setAttribute('stroke-dasharray',  `${dCarga} ${CIRC - dCarga}`); elU.setAttribute('stroke-dashoffset', `-${dConfirmada + dEnRevision}`); }
 
         const legendEl = document.getElementById('status-legend');
         if (legendEl) {
             const items = [
-                { color: '#E85D26', label: 'Sin tratar',       count: nUntreated },
-                { color: '#F9A825', label: 'En tratamiento',   count: nTreating  },
-                { color: '#34A853', label: 'Tratadas',         count: nTreated   },
+                { color: '#E85D26', label: 'En carga',       count: nCarga },
+                { color: '#F9A825', label: 'En revisión',    count: nEnRevision },
+                { color: '#34A853', label: 'Confirmadas',    count: nConfirmada },
             ];
             legendEl.innerHTML = items.map(item => `
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -676,13 +745,13 @@ export function initMapApp() {
         const pt = document.getElementById('prog-treated');
         const pg = document.getElementById('prog-treating');
         const pu = document.getElementById('prog-untreated');
-        if (pt) pt.style.width = `${pTreated * 100}%`;
-        if (pg) pg.style.width = `${pTreating * 100}%`;
-        if (pu) pu.style.width = `${pUntreated * 100}%`;
+        if (pt) pt.style.width = `${pConfirmada * 100}%`;
+        if (pg) pg.style.width = `${pEnRevision * 100}%`;
+        if (pu) pu.style.width = `${pCarga * 100}%`;
         const progLabel = document.getElementById('prog-label');
         if (progLabel) {
-            const resolved = Math.round((nTreated + nTreating) / total * 100);
-            progLabel.textContent = `${resolved}% de lotes con intervención activa o resuelta`;
+            const resolved = Math.round((nConfirmada + nEnRevision) / total * 100);
+            progLabel.textContent = `${resolved}% de lotes con intervención activa o confirmada`;
         }
 
         const sortedD = Object.entries(dc).sort((a: any, b: any) => b[1] - a[1]);
@@ -732,7 +801,7 @@ export function initMapApp() {
             const cChk = document.getElementById('layer-clusters') as HTMLInputElement;
             if(cChk) cChk.checked = (clustVis === 'visible');
 
-            if (State.distritos) {
+            if (State.heatmapData) {
                 const distVis = State.map.getLayoutProperty('distritos-fill', 'visibility');
                 const dChk = document.getElementById('layer-districts') as HTMLInputElement;
                 if(dChk) dChk.checked = (distVis === 'visible');
@@ -753,6 +822,65 @@ export function initMapApp() {
     }
     document.querySelectorAll('.modal-close').forEach((btn: any) => btn.addEventListener('click', () => closeModal(btn.closest('.modal'))));
     document.querySelectorAll('.modal-overlay').forEach((ov: any) => ov.addEventListener('click', () => closeModal(ov.closest('.modal'))));
+
+    // ─── DENUNCIAS ───────────────────────────────────────
+    function setupDenunciaForm() {
+        const form = document.getElementById('denuncia-form') as HTMLFormElement;
+        if (!form) return;
+        const btnSubmit = document.getElementById('denuncia-submit') as HTMLButtonElement;
+        const msgEl = document.getElementById('denuncia-msg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!btnSubmit || !msgEl) return;
+
+            const tipo = (form.querySelector('[name="tipo"]') as HTMLSelectElement)?.value;
+            const descripcion = (form.querySelector('[name="descripcion"]') as HTMLTextAreaElement)?.value?.trim();
+            const direccion = (form.querySelector('[name="direccion"]') as HTMLInputElement)?.value?.trim();
+            const contacto = (form.querySelector('[name="contacto"]') as HTMLInputElement)?.value?.trim();
+
+            // Validación client-side
+            if (!tipo) { msgEl.textContent = 'Seleccioná un tipo de denuncia.'; msgEl.style.color = 'var(--red)'; return; }
+            if (!descripcion || descripcion.length < 10) { msgEl.textContent = 'La descripción debe tener al menos 10 caracteres.'; msgEl.style.color = 'var(--red)'; return; }
+            if (descripcion.length > 1000) { msgEl.textContent = 'La descripción no puede superar los 1000 caracteres.'; msgEl.style.color = 'var(--red)'; return; }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Enviando...';
+            msgEl.textContent = '';
+
+            const body: any = { tipo, descripcion };
+            if (direccion) body.direccion = direccion;
+            if (contacto) body.contacto = contacto;
+
+            try {
+                const res = await fetch(CONFIG.denunciasPath, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.status === 202) {
+                    msgEl.textContent = '✅ ¡Denuncia recibida! El equipo la va a revisar.';
+                    msgEl.style.color = 'var(--green)';
+                    form.reset();
+                } else if (res.status === 429) {
+                    msgEl.textContent = 'Ya enviaste varias denuncias. Probá más tarde.';
+                    msgEl.style.color = 'var(--orange-status)';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const detail = err.message ?? err.mensaje ?? 'Error al enviar la denuncia.';
+                    msgEl.textContent = Array.isArray(detail) ? detail.join('. ') : detail;
+                    msgEl.style.color = 'var(--red)';
+                }
+            } catch {
+                msgEl.textContent = 'Error de conexión. Verificá tu internet.';
+                msgEl.style.color = 'var(--red)';
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Enviar Denuncia';
+            }
+        });
+    }
 
     // ─── CAROUSEL ────────────────────────────────────────
     function setupCarousel() {
@@ -853,28 +981,22 @@ export function initMapApp() {
 
     async function init() {
         try {
-            console.log('>>> Iniciando initMapApp...');
+            console.log('>>> Iniciando initMapApp (API real)...');
             animateLoader(15);
             
-            console.log('>>> Creando instancia de mapa...');
             await initMap();
-            console.log('>>> Mapa cargado correctamente.');
-            
+            console.log('>>> Mapa cargado.');
             animateLoader(40);
             
-            console.log('>>> Descargando GeoJSON...');
+            console.log('>>> Descargando datos de la API...');
             await loadData();
-            console.log('>>> GeoJSON descargados y asignados.', { 
-                geojson: State.geojson ? 'OK' : 'Fallo', 
-                distritos: State.distritos ? 'OK' : 'Fallo' 
-            });
-            
+            console.log(`>>> API OK: ${State.geojson.features.length} inmuebles cargados.`);
             animateLoader(70);
 
-            console.log('>>> Agregando capas y fuentes...');
             addSourcesAndLayers();
             setupMapEvents();
             
+            // Ocultar capas base de CartoDB (satélite es default)
             const ownLayers = ['satellite-layer','distritos-fill','distritos-line','distritos-label',
                 'heatmap','points','clusters','cluster-count','measure-fill','measure-line','measure-pts','highlight-ring'];
             State.map.getStyle().layers.forEach((layer: any) => {
@@ -884,13 +1006,13 @@ export function initMapApp() {
             });
             animateLoader(85);
 
-            console.log('>>> Configurando UI y modales...');
             setupSearch();
             setupStatusChips();
             setupLayersModal();
             setupFiltersModal();
             setupSidebar();
             setupCarousel();
+            setupDenunciaForm();
 
             animateLoader(100);
             console.log('>>> Secuencia completada. Ocultando loader...');
@@ -908,7 +1030,6 @@ export function initMapApp() {
                     });
                 }
                 
-                // Enter animation
                 gsap.fromTo('#top-ui', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.6, delay: 0.2, ease: 'power3.out' });
                 gsap.fromTo('#bottom-bar-container', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, delay: 0.3, ease: 'power3.out' });
                 

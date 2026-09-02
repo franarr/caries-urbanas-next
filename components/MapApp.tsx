@@ -44,9 +44,9 @@ export default function MapApp() {
                 </div>
 
                 <div className="quick-filters">
-                    <button className="chip" data-status="untreated"><span className="chip-dot chip-dot-red"></span>Sin tratar</button>
-                    <button className="chip" data-status="treating"><span className="chip-dot chip-dot-orange"></span>En tratamiento</button>
-                    <button className="chip" data-status="treated"><span className="chip-dot chip-dot-green"></span>Tratadas</button>
+                    <button className="chip" data-status="carga"><span className="chip-dot chip-dot-red"></span>En carga</button>
+                    <button className="chip" data-status="en_revision"><span className="chip-dot chip-dot-orange"></span>En revisión</button>
+                    <button className="chip" data-status="confirmada"><span className="chip-dot chip-dot-green"></span>Confirmadas</button>
                 </div>
             </div>
 
@@ -361,9 +361,33 @@ export default function MapApp() {
                                 <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <span>Protegés la seguridad de tus vecinos.</span></li>
                             </ul>
                         </div>
-                        <a href="https://forms.gle/example" className="btn-primary btn-full" style={{ marginTop: '20px' }} target="_blank" rel="noopener noreferrer" id="btn-report-form">
-                            Formulario de Denuncia
-                        </a>
+                        <form id="denuncia-form" style={{ marginTop: '20px' }}>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="filter-label" htmlFor="denuncia-tipo">Tipo de reporte *</label>
+                                <select name="tipo" id="denuncia-tipo" className="ui-select" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="baldio">Terreno baldío</option>
+                                    <option value="casa_abandonada">Casa abandonada</option>
+                                    <option value="ambiental">Problema ambiental</option>
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="filter-label" htmlFor="denuncia-desc">Descripción *</label>
+                                <textarea name="descripcion" id="denuncia-desc" className="ui-select" rows={3} placeholder="Describí el problema (mínimo 10 caracteres)" required minLength={10} maxLength={1000} style={{ resize: 'vertical', fontFamily: 'var(--font-body)' }}></textarea>
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="filter-label" htmlFor="denuncia-dir">Dirección (opcional)</label>
+                                <input type="text" name="direccion" id="denuncia-dir" className="ui-select" placeholder="Ej: Rivadavia al 3400" />
+                            </div>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label className="filter-label" htmlFor="denuncia-contacto">Contacto (opcional)</label>
+                                <input type="text" name="contacto" id="denuncia-contacto" className="ui-select" placeholder="Teléfono o email" maxLength={200} />
+                            </div>
+                            <p id="denuncia-msg" style={{ fontSize: '13px', marginBottom: '10px', minHeight: '18px', fontWeight: 500 }}></p>
+                            <button type="submit" id="denuncia-submit" className="btn-primary btn-full">
+                                Enviar Denuncia
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
