@@ -898,3 +898,326 @@ tbody tr.selected td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- VISTAS DESKTOP VS MOBILE (LISOMAPS STYLE) ---------- */
+.admin-desktop-view {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.admin-mobile-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-desktop-view {
+    display: none !important;
+  }
+
+  .admin-mobile-view {
+    display: block !important;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Barra superior flotante minimalista en mobile */
+  .mobile-top-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 50px;
+    background: rgba(9, 9, 11, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+
+  .mobile-top-header .brand-title {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-top-header .admin-pill {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--accent);
+    background: rgba(239, 123, 69, 0.12);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+
+  .mobile-top-header .logout-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Mapa a pantalla completa en mobile */
+  .mobile-map-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+  }
+
+  /* Bottom Sheet estilo Lisomaps */
+  .mobile-bottom-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    background: #131316;
+    border-top: 1px solid var(--border-strong);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobile-bottom-sheet.peek {
+    height: 84px;
+  }
+
+  .mobile-bottom-sheet.half {
+    height: 48vh;
+  }
+
+  .mobile-bottom-sheet.full {
+    height: 86vh;
+  }
+
+  .sheet-handle-bar {
+    padding: 10px 0 6px;
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .sheet-tabs-container {
+    padding: 2px 14px 8px;
+    flex-shrink: 0;
+  }
+
+  .segmented-control {
+    display: flex;
+    background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+    padding: 3px;
+    gap: 4px;
+  }
+
+  .seg-item {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 700;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .seg-item.active {
+    background: #1f1f24;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  .sheet-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 14px 28px;
+  }
+
+  .sheet-search-row {
+    margin-bottom: 8px;
+  }
+
+  .sheet-search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 7px 12px;
+  }
+
+  .sheet-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .sheet-chips-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .sheet-chips-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sheet-chip {
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #09090b;
+    color: var(--text-secondary);
+    font-size: 10.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .sheet-chip.active {
+    background: rgba(239, 123, 69, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .sheet-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sheet-item-card {
+    background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .sheet-item-card:active {
+    background: #1a1a1e;
+    border-color: var(--accent);
+  }
+
+  .sheet-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .sheet-item-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .sheet-item-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid transparent;
+  }
+
+  .sheet-item-address {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.25;
+  }
+
+  .sheet-item-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .sheet-item-district {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sheet-item-patrimonio {
+    color: var(--amber);
+    margin-left: 8px;
+    font-weight: 800;
+    font-size: 9.5px;
+  }
+
+  .sheet-resumen-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+  }
+
+  .sheet-kpi-card {
+    background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+}

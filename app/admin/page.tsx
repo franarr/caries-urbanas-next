@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCatalogos, fetchRelevamientos } from '@/lib/api-admin';
+import { fetchCatalogos, fetchRelevamientos, clearSession, RelevamientoResumen } from '@/lib/api-admin';
 import { useAdminStore } from '@/lib/store';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminTopbar } from '@/components/admin/AdminTopbar';
@@ -10,8 +11,10 @@ import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
 import { AdminTable } from '@/components/admin/AdminTable';
 import { AdminFichaModal } from '@/components/admin/AdminFichaModal';
 import { AdminMapFull } from '@/components/admin/AdminMapFull';
+import { AdminMobileSheet } from '@/components/admin/AdminMobileSheet';
 
 export default function AdminPage() {
+  const router = useRouter();
   const [currentTab, setCurrentTab] = useState<'relevamientos' | 'mapa'>('relevamientos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { filtros, selectRelevamiento } = useAdminStore();
@@ -30,7 +33,7 @@ export default function AdminPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Consulta de todos los lotes de la base de datos para la vista de mapa
+  // Consulta de todos los lotes de la base de datos para el mapa
   const { data: allMapItems } = useQuery({
     queryKey: ['admin-all-map-items'],
     queryFn: async () => {
@@ -60,41 +63,81 @@ export default function AdminPage() {
     setCurrentTab('mapa');
   };
 
+  const handleLogout = () => {
+    clearSession();
+    router.push('/admin/login');
+  };
+
+  const handleSelectLote = (item: RelevamientoResumen) => {
+    selectRelevamiento(item.id);
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="admin-app">
-      {/* Sidebar */}
-      <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
+      {/* ===== VISTA DESKTOP (PANEL EDITORIAL CON TABLA COMPLETA) ===== */}
+      <div className="admin-desktop-view">
+        {/* Sidebar */}
+        <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
-      {/* Main Container */}
-      <main className="main">
-        {/* Topbar */}
-        <AdminTopbar currentTab={currentTab} catalogos={catalogos} />
+        {/* Main Container */}
+        <main className="main">
+          {/* Topbar */}
+          <AdminTopbar currentTab={currentTab} catalogos={catalogos} />
 
-        {/* Tab: Relevamientos (Tabla + KPIs) */}
-        {currentTab === 'relevamientos' && (
-          <>
-            <AdminKpiStrip totalCount={relevamientosData?.total} />
-            <AdminTable
-              data={relevamientosData}
-              isLoading={isLoading}
-              onOpenModal={() => setIsModalOpen(true)}
+          {/* Tab: Relevamientos (Tabla + KPIs) */}
+          {currentTab === 'relevamientos' && (
+            <>
+              <AdminKpiStrip totalCount={relevamientosData?.total} />
+              <AdminTable
+                data={relevamientosData}
+                isLoading={isLoading}
+                onOpenModal={() => setIsModalOpen(true)}
+              />
+            </>
+          )}
+
+          {/* Tab: Mapa Completo */}
+          {currentTab === 'mapa' && (
+            <AdminMapFull
+              items={mapItems}
+              onSelectLote={handleSelectLote}
             />
-          </>
-        )}
+          )}
+        </main>
+      </div>
 
-        {/* Tab: Mapa Completo */}
-        {currentTab === 'mapa' && (
+      {/* ===== VISTA MOBILE (ESTILO LISOMAPS: MAPA DE FONDO + BOTTOM SHEET) ===== */}
+      <div className="admin-mobile-view">
+        {/* Barra superior flotante */}
+        <header className="mobile-top-header">
+          <div className="brand-title">
+            Caries Urbanas
+            <span className="admin-pill">ADMIN</span>
+          </div>
+          <button type="button" onClick={handleLogout} className="logout-btn">
+            salir ↗
+          </button>
+        </header>
+
+        {/* Mapa interactivo a pantalla completa */}
+        <div className="mobile-map-bg">
           <AdminMapFull
             items={mapItems}
-            onSelectLote={(item) => {
-              selectRelevamiento(item.id);
-              setIsModalOpen(true);
-            }}
+            onSelectLote={handleSelectLote}
           />
-        )}
-      </main>
+        </div>
 
-      {/* Modal Ficha Completa */}
+        {/* Bottom Sheet deslizable [ Inmuebles | Resumen & KPIs ] */}
+        <AdminMobileSheet
+          items={mapItems}
+          totalCount={relevamientosData?.total}
+          catalogos={catalogos}
+          onSelectLote={handleSelectLote}
+        />
+      </div>
+
+      {/* Modal Ficha Completa (Bottom-Sheet en mobile, centrado en desktop) */}
       <AdminFichaModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
