@@ -22,7 +22,6 @@ export function AdminFigmaDashboard({
   const [selectedTipo, setSelectedTipo] = useState<string>('todos');
   const [selectedPatrimonio, setSelectedPatrimonio] = useState<string>('todos');
   const [currentPage, setCurrentPage] = useState(1);
-  // Empieza baja (peek) como en lisomaps.com para que se vea el mapa primero
   const [drawerState, setDrawerState] = useState<'peek' | 'half' | 'full'>('peek');
   const pageSize = 20;
 
@@ -36,7 +35,6 @@ export function AdminFigmaDashboard({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Si estamos arrastrando el handle, prevenimos scroll por defecto
     if (!isDragging.current) return;
   };
 
@@ -46,12 +44,12 @@ export function AdminFigmaDashboard({
     const touchEndY = e.changedTouches[0].clientY;
     const deltaY = touchEndY - touchStartY.current;
 
-    // Deslizó hacia arriba con el dedo (deltaY negativo)
+    // Deslizó hacia arriba con el dedo
     if (deltaY < -35) {
       if (drawerState === 'peek') setDrawerState('half');
       else if (drawerState === 'half') setDrawerState('full');
     }
-    // Deslizó hacia abajo con el dedo (deltaY positivo)
+    // Deslizó hacia abajo con el dedo
     else if (deltaY > 35) {
       if (drawerState === 'full') setDrawerState('half');
       else if (drawerState === 'half') setDrawerState('peek');
@@ -115,8 +113,6 @@ export function AdminFigmaDashboard({
   const totalVacancias = items.filter((i) => i.tipo === 'vacancia').length;
   const totalPatrimonio = items.filter((i) => i.patrimonio).length;
 
-  const distritosDisponibles = ['CENTRO', 'ESTE', 'SUROESTE', 'OESTE', 'NORTE', 'NORESTE', 'NOROESTE'];
-
   return (
     <div className="split-dashboard">
       {/* Columna Izquierda: Mapa Caries Urbanas */}
@@ -147,7 +143,7 @@ export function AdminFigmaDashboard({
 
       {/* Columna Derecha / Cajonera táctil deslizable en mobile */}
       <section className={`table-panel mobile-drawer-${drawerState}`}>
-        {/* Manija táctil para deslizar con el dedo hacia arriba y abajo */}
+        {/* Manija táctil para deslizar con el dedo en mobile */}
         <div
           className="drawer-handle-bar"
           onTouchStart={handleTouchStart}
@@ -177,77 +173,82 @@ export function AdminFigmaDashboard({
             />
           </div>
 
-          {/* Tira deslizable hacia el costado para todas las categorías y filtros */}
-          <div className="horizontal-chips-scroll">
-            <button
-              type="button"
-              className={`filter-chip ${selectedTipo === 'todos' && selectedPatrimonio === 'todos' && selectedDistrito === 'todos' ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedTipo('todos');
-                setSelectedPatrimonio('todos');
-                setSelectedDistrito('todos');
-                setCurrentPage(1);
-              }}
-            >
-              Todos ({items.length})
-            </button>
-
-            <button
-              type="button"
-              className={`filter-chip chip-carie ${selectedTipo === 'carie' ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedTipo(selectedTipo === 'carie' ? 'todos' : 'carie');
-                setCurrentPage(1);
-              }}
-            >
-              <span className="legend-dot" style={{ background: '#111827' }} />
-              Caries ({totalCaries || 265})
-            </button>
-
-            <button
-              type="button"
-              className={`filter-chip chip-vacancia ${selectedTipo === 'vacancia' ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedTipo(selectedTipo === 'vacancia' ? 'todos' : 'vacancia');
-                setCurrentPage(1);
-              }}
-            >
-              <span className="legend-dot" style={{ background: '#6b7280' }} />
-              Vacancias ({totalVacancias || 118})
-            </button>
-
-            <button
-              type="button"
-              className={`filter-chip chip-patrimonio ${selectedPatrimonio === 'patrimonio' ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedPatrimonio(selectedPatrimonio === 'patrimonio' ? 'todos' : 'patrimonio');
-                setCurrentPage(1);
-              }}
-            >
-              <span className="legend-dot" style={{ background: '#d97706' }} />
-              Patrimonio ({totalPatrimonio || 44})
-            </button>
-
-            <span className="chips-sep">|</span>
-
-            {/* Chips de distritos de Santa Fe */}
-            {distritosDisponibles.map((dist) => (
+          {/* Barra de Filtros: Categorías a la izquierda + Selector de Distrito a la derecha (sin necesidad de deslizar) */}
+          <div className="controls-filter-bar">
+            <div className="category-chips-group">
               <button
-                key={dist}
                 type="button"
-                className={`filter-chip chip-distrito ${selectedDistrito === dist ? 'active' : ''}`}
+                className={`filter-chip ${selectedTipo === 'todos' && selectedPatrimonio === 'todos' ? 'active' : ''}`}
                 onClick={() => {
-                  setSelectedDistrito(selectedDistrito === dist ? 'todos' : dist);
+                  setSelectedTipo('todos');
+                  setSelectedPatrimonio('todos');
                   setCurrentPage(1);
                 }}
               >
-                {dist}
+                Todos ({items.length})
               </button>
-            ))}
+
+              <button
+                type="button"
+                className={`filter-chip chip-carie ${selectedTipo === 'carie' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedTipo(selectedTipo === 'carie' ? 'todos' : 'carie');
+                  setCurrentPage(1);
+                }}
+              >
+                <span className="legend-dot" style={{ background: '#111827' }} />
+                Caries ({totalCaries || 265})
+              </button>
+
+              <button
+                type="button"
+                className={`filter-chip chip-vacancia ${selectedTipo === 'vacancia' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedTipo(selectedTipo === 'vacancia' ? 'todos' : 'vacancia');
+                  setCurrentPage(1);
+                }}
+              >
+                <span className="legend-dot" style={{ background: '#6b7280' }} />
+                Vacancias ({totalVacancias || 118})
+              </button>
+
+              <button
+                type="button"
+                className={`filter-chip chip-patrimonio ${selectedPatrimonio === 'patrimonio' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedPatrimonio(selectedPatrimonio === 'patrimonio' ? 'todos' : 'patrimonio');
+                  setCurrentPage(1);
+                }}
+              >
+                <span className="legend-dot" style={{ background: '#d97706' }} />
+                Patrimonio ({totalPatrimonio || 44})
+              </button>
+            </div>
+
+            {/* Selector de Distrito con diseño limpio e integrado */}
+            <div className="district-select-wrap">
+              <select
+                value={selectedDistrito}
+                onChange={(e) => {
+                  setSelectedDistrito(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="clean-select"
+              >
+                <option value="todos">Distrito: Todos (7 distritos)</option>
+                <option value="CENTRO">Centro (193)</option>
+                <option value="ESTE">Este (111)</option>
+                <option value="SUROESTE">Suroeste (26)</option>
+                <option value="OESTE">Oeste (23)</option>
+                <option value="NORTE">Norte (13)</option>
+                <option value="NORESTE">Noreste (9)</option>
+                <option value="NOROESTE">Noroeste (8)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Tabla tradicional en Desktop */}
+        {/* Tabla tradicional en Desktop con scroll vertical fluido */}
         <div className="table-wrap desktop-table-wrap">
           <table className="admin-table">
             <thead>
@@ -330,7 +331,7 @@ export function AdminFigmaDashboard({
         <div className="table-pagination">
           <span>
             {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} a{' '}
-            {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length}
+            {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length} casos
           </span>
 
           <div className="pagination-controls">
