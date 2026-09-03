@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { RelevamientoResumen, Catalogos } from '@/lib/api-admin';
 import { AdminFigmaMap } from './AdminFigmaMap';
 
@@ -22,8 +22,47 @@ export function AdminFigmaDashboard({
   const [selectedTipo, setSelectedTipo] = useState<string>('todos');
   const [selectedPatrimonio, setSelectedPatrimonio] = useState<string>('todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const [drawerState, setDrawerState] = useState<'peek' | 'half' | 'full'>('half');
+  // Empieza baja (peek) como en lisomaps.com para que se vea el mapa primero
+  const [drawerState, setDrawerState] = useState<'peek' | 'half' | 'full'>('peek');
   const pageSize = 20;
+
+  // Manejo de arrastre táctil con el dedo para la cajonera mobile
+  const touchStartY = useRef<number>(0);
+  const isDragging = useRef<boolean>(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Si estamos arrastrando el handle, prevenimos scroll por defecto
+    if (!isDragging.current) return;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaY = touchEndY - touchStartY.current;
+
+    // Deslizó hacia arriba con el dedo (deltaY negativo)
+    if (deltaY < -35) {
+      if (drawerState === 'peek') setDrawerState('half');
+      else if (drawerState === 'half') setDrawerState('full');
+    }
+    // Deslizó hacia abajo con el dedo (deltaY positivo)
+    else if (deltaY > 35) {
+      if (drawerState === 'full') setDrawerState('half');
+      else if (drawerState === 'half') setDrawerState('peek');
+    }
+  };
+
+  const toggleDrawer = () => {
+    if (drawerState === 'peek') setDrawerState('half');
+    else if (drawerState === 'half') setDrawerState('full');
+    else setDrawerState('half');
+  };
 
   // Filtrado reactivo en memoria con datos 100% reales
   const filtered = items.filter((item) => {
@@ -49,12 +88,6 @@ export function AdminFigmaDashboard({
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const toggleDrawer = () => {
-    if (drawerState === 'peek') setDrawerState('half');
-    else if (drawerState === 'half') setDrawerState('full');
-    else setDrawerState('half');
-  };
-
   const getStatusBadge = (item: RelevamientoResumen) => {
     if (item.patrimonio) {
       return (
@@ -77,10 +110,12 @@ export function AdminFigmaDashboard({
     );
   };
 
-  // Contadores reales de la base
+  // Conteo de datos reales de la base
   const totalCaries = items.filter((i) => (i.tipo || 'carie') === 'carie').length;
   const totalVacancias = items.filter((i) => i.tipo === 'vacancia').length;
   const totalPatrimonio = items.filter((i) => i.patrimonio).length;
+
+  const distritosDisponibles = ['CENTRO', 'ESTE', 'SUROESTE', 'OESTE', 'NORTE', 'NORESTE', 'NOROESTE'];
 
   return (
     <div className="split-dashboard">
@@ -110,25 +145,21 @@ export function AdminFigmaDashboard({
         </div>
       </section>
 
-      {/* Columna Derecha / Bottom Drawer en mobile */}
+      {/* Columna Derecha / Cajonera táctil deslizable en mobile */}
       <section className={`table-panel mobile-drawer-${drawerState}`}>
-        {/* Manija táctil de arrastre (visible solo en mobile) */}
-        <div className="drawer-handle-bar" onClick={toggleDrawer}>
+        {/* Manija táctil para deslizar con el dedo hacia arriba y abajo */}
+        <div
+          className="drawer-handle-bar"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={toggleDrawer}
+        >
           <div className="drawer-handle" />
           <div className="drawer-mobile-row">
             <span className="drawer-mobile-title">
               Inmuebles ({filtered.length})
             </span>
-            <button
-              type="button"
-              className="drawer-toggle-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDrawerState(drawerState === 'full' ? 'half' : 'full');
-              }}
-            >
-              {drawerState === 'full' ? 'Reducir lista ↓' : 'Deslizar arriba ↑'}
-            </button>
           </div>
         </div>
 
@@ -146,47 +177,73 @@ export function AdminFigmaDashboard({
             />
           </div>
 
-          <div className="filters-row">
-            <select
-              value={selectedDistrito}
-              onChange={(e) => {
-                setSelectedDistrito(e.target.value);
+          {/* Tira deslizable hacia el costado para todas las categorías y filtros */}
+          <div className="horizontal-chips-scroll">
+            <button
+              type="button"
+              className={`filter-chip ${selectedTipo === 'todos' && selectedPatrimonio === 'todos' && selectedDistrito === 'todos' ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedTipo('todos');
+                setSelectedPatrimonio('todos');
+                setSelectedDistrito('todos');
                 setCurrentPage(1);
               }}
-              className="clean-select"
             >
-              <option value="todos">Distrito: Todos</option>
-              {catalogos?.distritos?.map((d) => (
-                <option key={d.id} value={d.nombre}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
+              Todos ({items.length})
+            </button>
 
-            <select
-              value={selectedTipo}
-              onChange={(e) => {
-                setSelectedTipo(e.target.value);
+            <button
+              type="button"
+              className={`filter-chip chip-carie ${selectedTipo === 'carie' ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedTipo(selectedTipo === 'carie' ? 'todos' : 'carie');
                 setCurrentPage(1);
               }}
-              className="clean-select"
             >
-              <option value="todos">Tipo: Todos</option>
-              <option value="carie">Carie urbana</option>
-              <option value="vacancia">Vacancia</option>
-            </select>
+              <span className="legend-dot" style={{ background: '#111827' }} />
+              Caries ({totalCaries || 265})
+            </button>
 
-            <select
-              value={selectedPatrimonio}
-              onChange={(e) => {
-                setSelectedPatrimonio(e.target.value);
+            <button
+              type="button"
+              className={`filter-chip chip-vacancia ${selectedTipo === 'vacancia' ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedTipo(selectedTipo === 'vacancia' ? 'todos' : 'vacancia');
                 setCurrentPage(1);
               }}
-              className="clean-select"
             >
-              <option value="todos">Patrimonio: Todos</option>
-              <option value="patrimonio">Solo Catalogados</option>
-            </select>
+              <span className="legend-dot" style={{ background: '#6b7280' }} />
+              Vacancias ({totalVacancias || 118})
+            </button>
+
+            <button
+              type="button"
+              className={`filter-chip chip-patrimonio ${selectedPatrimonio === 'patrimonio' ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedPatrimonio(selectedPatrimonio === 'patrimonio' ? 'todos' : 'patrimonio');
+                setCurrentPage(1);
+              }}
+            >
+              <span className="legend-dot" style={{ background: '#d97706' }} />
+              Patrimonio ({totalPatrimonio || 44})
+            </button>
+
+            <span className="chips-sep">|</span>
+
+            {/* Chips de distritos de Santa Fe */}
+            {distritosDisponibles.map((dist) => (
+              <button
+                key={dist}
+                type="button"
+                className={`filter-chip chip-distrito ${selectedDistrito === dist ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedDistrito(selectedDistrito === dist ? 'todos' : dist);
+                  setCurrentPage(1);
+                }}
+              >
+                {dist}
+              </button>
+            ))}
           </div>
         </div>
 

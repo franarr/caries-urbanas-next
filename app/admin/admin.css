@@ -294,28 +294,90 @@ body {
   border-color: var(--text);
 }
 
-.filters-row {
+/* Tira horizontal deslizable hacia los costados para filtros y categorías */
+.horizontal-chips-scroll {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 0 4px;
 }
 
-.clean-select {
-  height: 30px;
+.horizontal-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
   padding: 0 10px;
+  border-radius: 100px;
   border: 1px solid var(--border);
-  border-radius: 4px;
   background: var(--surface);
   color: var(--text-secondary);
   font-family: inherit;
   font-size: 11.5px;
-  font-weight: 500;
-  outline: none;
+  font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
-.clean-select:focus {
-  border-color: var(--text);
+.filter-chip:hover {
+  border-color: var(--text-muted);
   color: var(--text);
+}
+
+.filter-chip.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.filter-chip.chip-carie.active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.filter-chip.chip-vacancia.active {
+  background: #4b5563;
+  color: #ffffff;
+  border-color: #4b5563;
+}
+
+.filter-chip.chip-patrimonio {
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #b45309;
+}
+
+.filter-chip.chip-patrimonio.active {
+  background: #d97706;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+.filter-chip.chip-distrito {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.filter-chip.chip-distrito.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.chips-sep {
+  color: var(--border);
+  font-size: 12px;
+  padding: 0 2px;
+  flex-shrink: 0;
 }
 
 .table-wrap {
@@ -870,12 +932,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0 6px;
-    cursor: pointer;
+    padding: 10px 0 8px;
+    cursor: grab;
     flex-shrink: 0;
     background: #ffffff;
     border-radius: 18px 18px 0 0;
     border-bottom: 1px solid #f3f4f6;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .drawer-handle-bar:active {
+    cursor: grabbing;
   }
 
   .drawer-handle {
@@ -889,7 +957,7 @@ body {
   .drawer-mobile-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     width: 100%;
     padding: 2px 16px 0;
   }
@@ -900,18 +968,6 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-  }
-
-  .drawer-toggle-btn {
-    background: #f3f4f6;
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 3px 9px;
-    font-family: inherit;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: var(--text);
-    cursor: pointer;
   }
 
   .table-controls {
