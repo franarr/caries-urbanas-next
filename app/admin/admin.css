@@ -51,6 +51,23 @@ body {
   background: var(--bg-page);
 }
 
+/* Transición suave entre pantallas para evitar saltos bruscos */
+.admin-view-fade {
+  animation: adminViewIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+
+@keyframes adminViewIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---------- CABECERA INSTITUCIONAL ---------- */
 .admin-header {
   height: 48px;
@@ -910,7 +927,16 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 0 16px 20px;
+    padding: 0 16px 32px;
+    flex: 1;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: calc(48vh - 120px);
+  }
+
+  .mobile-drawer-full .mobile-cards-list {
+    max-height: calc(100vh - 170px) !important;
   }
 
   .mobile-case-card {

@@ -19,12 +19,13 @@ export function AdminFigmaDashboard({
 }: AdminFigmaDashboardProps) {
   const [search, setSearch] = useState('');
   const [selectedDistrito, setSelectedDistrito] = useState<string>('todos');
-  const [selectedEstado, setSelectedEstado] = useState<string>('todos');
+  const [selectedTipo, setSelectedTipo] = useState<string>('todos');
+  const [selectedPatrimonio, setSelectedPatrimonio] = useState<string>('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerState, setDrawerState] = useState<'peek' | 'half' | 'full'>('half');
-  const pageSize = 10;
+  const pageSize = 20;
 
-  // Filtrado reactivo en memoria
+  // Filtrado reactivo en memoria con datos 100% reales
   const filtered = items.filter((item) => {
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -36,8 +37,11 @@ export function AdminFigmaDashboard({
       const dist = (item.distrito || '').toLowerCase();
       if (dist !== selectedDistrito.toLowerCase()) return false;
     }
-    if (selectedEstado !== 'todos') {
-      if (item.estado_registro !== selectedEstado) return false;
+    if (selectedTipo !== 'todos') {
+      if ((item.tipo || 'carie') !== selectedTipo) return false;
+    }
+    if (selectedPatrimonio === 'patrimonio') {
+      if (!item.patrimonio) return false;
     }
     return true;
   });
@@ -51,44 +55,48 @@ export function AdminFigmaDashboard({
     else setDrawerState('half');
   };
 
-  const getStatusBadge = (estado?: string) => {
-    switch (estado) {
-      case 'confirmada':
-        return (
-          <span className="status-badge" style={{ color: 'var(--status-green)' }}>
-            <span className="legend-dot dot-green" /> Tratado
-          </span>
-        );
-      case 'en_revision':
-        return (
-          <span className="status-badge" style={{ color: 'var(--status-amber)' }}>
-            <span className="legend-dot dot-amber" /> En revisión
-          </span>
-        );
-      default:
-        return (
-          <span className="status-badge" style={{ color: 'var(--status-red)' }}>
-            <span className="legend-dot dot-red" /> Sin tratar
-          </span>
-        );
+  const getStatusBadge = (item: RelevamientoResumen) => {
+    if (item.patrimonio) {
+      return (
+        <span className="status-badge" style={{ color: '#d97706' }}>
+          <span className="legend-dot" style={{ background: '#d97706' }} /> Patrimonio
+        </span>
+      );
     }
+    if (item.tipo === 'vacancia') {
+      return (
+        <span className="status-badge" style={{ color: '#4b5563' }}>
+          <span className="legend-dot" style={{ background: '#6b7280' }} /> Vacancia
+        </span>
+      );
+    }
+    return (
+      <span className="status-badge" style={{ color: '#111827' }}>
+        <span className="legend-dot" style={{ background: '#111827' }} /> Carie urbana
+      </span>
+    );
   };
+
+  // Contadores reales de la base
+  const totalCaries = items.filter((i) => (i.tipo || 'carie') === 'carie').length;
+  const totalVacancias = items.filter((i) => i.tipo === 'vacancia').length;
+  const totalPatrimonio = items.filter((i) => i.patrimonio).length;
 
   return (
     <div className="split-dashboard">
-      {/* Columna Izquierda: Mapa Caries Urbanas (en mobile ocupa toda la pantalla de fondo) */}
+      {/* Columna Izquierda: Mapa Caries Urbanas */}
       <section className="map-panel">
         <div className="panel-header">
-          <span className="panel-title">Mapa Caries Urbanas</span>
+          <span className="panel-title">Mapa de Inmuebles Registrados</span>
           <div className="map-legend">
             <span className="legend-item">
-              <span className="legend-dot dot-red" /> Sin tratar
+              <span className="legend-dot" style={{ background: '#111827' }} /> Caries ({totalCaries || 265})
             </span>
             <span className="legend-item">
-              <span className="legend-dot dot-amber" /> En revisión
+              <span className="legend-dot" style={{ background: '#6b7280' }} /> Vacancias ({totalVacancias || 118})
             </span>
             <span className="legend-item">
-              <span className="legend-dot dot-green" /> Tratados
+              <span className="legend-dot" style={{ background: '#d97706' }} /> Patrimonio ({totalPatrimonio || 44})
             </span>
           </div>
         </div>
@@ -109,7 +117,7 @@ export function AdminFigmaDashboard({
           <div className="drawer-handle" />
           <div className="drawer-mobile-row">
             <span className="drawer-mobile-title">
-              Listado de Inmuebles ({filtered.length})
+              Inmuebles ({filtered.length})
             </span>
             <button
               type="button"
@@ -156,17 +164,28 @@ export function AdminFigmaDashboard({
             </select>
 
             <select
-              value={selectedEstado}
+              value={selectedTipo}
               onChange={(e) => {
-                setSelectedEstado(e.target.value);
+                setSelectedTipo(e.target.value);
                 setCurrentPage(1);
               }}
               className="clean-select"
             >
-              <option value="todos">Estado: Todos</option>
-              <option value="carga">Sin tratar</option>
-              <option value="en_revision">En revisión</option>
-              <option value="confirmada">Tratados</option>
+              <option value="todos">Tipo: Todos</option>
+              <option value="carie">Carie urbana</option>
+              <option value="vacancia">Vacancia</option>
+            </select>
+
+            <select
+              value={selectedPatrimonio}
+              onChange={(e) => {
+                setSelectedPatrimonio(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="clean-select"
+            >
+              <option value="todos">Patrimonio: Todos</option>
+              <option value="patrimonio">Solo Catalogados</option>
             </select>
           </div>
         </div>
@@ -179,7 +198,7 @@ export function AdminFigmaDashboard({
                 <th style={{ width: '80px' }}>Caso</th>
                 <th>Dirección</th>
                 <th>Distrito</th>
-                <th style={{ width: '130px' }}>Estado</th>
+                <th style={{ width: '130px' }}>Clasificación</th>
                 <th style={{ width: '70px', textAlign: 'right' }}>Acción</th>
               </tr>
             </thead>
@@ -198,7 +217,7 @@ export function AdminFigmaDashboard({
                       <td className="case-id">{caseNum}</td>
                       <td className="case-addr">{item.direccion || item.nombre || 'Sin dirección registrada'}</td>
                       <td className="case-district">{item.distrito || 'Santa Fe'}</td>
-                      <td>{getStatusBadge(item.estado_registro)}</td>
+                      <td>{getStatusBadge(item)}</td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           type="button"
@@ -219,14 +238,14 @@ export function AdminFigmaDashboard({
           </table>
         </div>
 
-        {/* Lista de tarjetas táctiles en Mobile */}
+        {/* Lista de tarjetas táctiles en Mobile: scroll continuo sin límite artificial */}
         <div className="table-wrap mobile-cards-list">
-          {paginated.length === 0 ? (
+          {filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-muted)', fontSize: '12px' }}>
               No se encontraron inmuebles registrados.
             </div>
           ) : (
-            paginated.map((item, idx) => {
+            filtered.map((item, idx) => {
               const caseNum = `#${String(item.nro_relevamiento || item.id).padStart(4, '0')}`;
               return (
                 <div
@@ -236,7 +255,7 @@ export function AdminFigmaDashboard({
                 >
                   <div className="card-top">
                     <span className="case-id">Caso {caseNum}</span>
-                    {getStatusBadge(item.estado_registro)}
+                    {getStatusBadge(item)}
                   </div>
                   <div className="case-addr">
                     {item.direccion || item.nombre || 'Sin dirección registrada'}

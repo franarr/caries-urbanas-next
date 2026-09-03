@@ -88,14 +88,14 @@ export default function AdminPage() {
       }
 
       return (geojson?.features || []).map((f: any, idx: number) => ({
-        id: Number(f.properties?.nro || f.id || idx + 1),
-        nro_relevamiento: Number(f.properties?.nro || f.properties?.nro_relevamiento || f.id || idx + 1),
+        id: Number(f.id ?? f.properties?.nro_relevamiento ?? f.properties?.nro ?? idx + 1),
+        nro_relevamiento: Number(f.properties?.nro_relevamiento ?? f.properties?.nro ?? idx + 1),
         tipo: f.properties?.tipo || 'carie',
-        nombre: f.properties?.ubicacion || f.properties?.nombre || 'Inmueble Relevado',
-        direccion: f.properties?.ubicacion || f.properties?.direccion || 'Sin dirección registrada',
+        nombre: f.properties?.nombre || f.properties?.ubicacion || 'Inmueble Relevado',
+        direccion: f.properties?.direccion || f.properties?.ubicacion || 'Sin dirección registrada',
         distrito: f.properties?.distrito || 'CENTRO',
-        estado_registro: f.properties?.estado_registro || (idx % 3 === 0 ? 'carga' : idx % 3 === 1 ? 'en_revision' : 'confirmada'),
-        patrimonio: f.properties?.patrimonio || false,
+        estado_registro: f.properties?.estado_registro || 'carga',
+        patrimonio: Boolean(f.properties?.patrimonio),
         lat: f.geometry?.coordinates ? f.geometry.coordinates[1] : null,
         lng: f.geometry?.coordinates ? f.geometry.coordinates[0] : null,
         actualizado_en: f.properties?.actualizado_en || new Date().toISOString(),
@@ -173,30 +173,36 @@ export default function AdminPage() {
       {/* Contenedor Central Dinámico según la vista activa */}
       <main className="admin-main">
         {currentView === 'dashboard' && (
-          <AdminFigmaDashboard
-            items={items}
-            catalogos={catalogos}
-            selectedId={selectedCaseId}
-            onSelectCase={handleSelectCase}
-          />
+          <div className="admin-view-fade">
+            <AdminFigmaDashboard
+              items={items}
+              catalogos={catalogos}
+              selectedId={selectedCaseId}
+              onSelectCase={handleSelectCase}
+            />
+          </div>
         )}
 
         {currentView === 'caso' && (
-          <AdminFigmaFicha
-            caseData={activeCase}
-            notesCount={caseNotes.length}
-            onBack={() => setCurrentView('dashboard')}
-            onGoToNotes={() => setCurrentView('notas')}
-          />
+          <div className="admin-view-fade">
+            <AdminFigmaFicha
+              caseData={activeCase}
+              notesCount={caseNotes.length}
+              onBack={() => setCurrentView('dashboard')}
+              onGoToNotes={() => setCurrentView('notas')}
+            />
+          </div>
         )}
 
         {currentView === 'notas' && (
-          <AdminFigmaNotas
-            caseData={activeCase}
-            notes={caseNotes}
-            onAddNote={handleAddNote}
-            onBackToCase={() => setCurrentView('caso')}
-          />
+          <div className="admin-view-fade">
+            <AdminFigmaNotas
+              caseData={activeCase}
+              notes={caseNotes}
+              onAddNote={handleAddNote}
+              onBackToCase={() => setCurrentView('caso')}
+            />
+          </div>
         )}
       </main>
 

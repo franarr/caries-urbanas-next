@@ -61,6 +61,9 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
               id: i.id,
               nro: i.nro_relevamiento || i.id,
               direccion: i.direccion || i.nombre || 'Sin dirección',
+              distrito: i.distrito || 'CENTRO',
+              tipo: i.tipo || 'carie',
+              patrimonio: Boolean(i.patrimonio),
               estado: i.estado_registro || 'carga',
             },
           })),
@@ -81,7 +84,7 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
         },
       });
 
-      // Punto con color de estado (Rojo: sin tratar, Ámbar: en revisión, Verde: tratados)
+      // Puntos institucionales basados 100% en la base de datos real
       map.addLayer({
         id: 'figma-points-dot',
         type: 'circle',
@@ -89,11 +92,10 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
         paint: {
           'circle-radius': 4.5,
           'circle-color': [
-            'match',
-            ['get', 'estado'],
-            'confirmada', '#16a34a',
-            'en_revision', '#d97706',
-            /* default / carga */ '#e11d48',
+            'case',
+            ['get', 'patrimonio'], '#d97706', // Ámbar para patrimonio catalogado
+            ['==', ['get', 'tipo'], 'vacancia'], '#6b7280', // Grafito para vacancia
+            '#111827', // Negro institucional para carie urbana
           ],
         },
       });
@@ -231,6 +233,9 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
               id: i.id,
               nro: i.nro_relevamiento || i.id,
               direccion: i.direccion || i.nombre || 'Sin dirección',
+              distrito: i.distrito || 'CENTRO',
+              tipo: i.tipo || 'carie',
+              patrimonio: Boolean(i.patrimonio),
               estado: i.estado_registro || 'carga',
             },
           })),
