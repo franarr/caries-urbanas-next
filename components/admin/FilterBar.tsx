@@ -1,96 +1,93 @@
 'use client';
 
+import React, { useState } from 'react';
 import { useAdminStore } from '@/lib/store';
-import { ListadoParams, Catalogos } from '@/lib/api-admin';
-import { Search, X, Filter } from 'lucide-react';
-import { useState } from 'react';
+import { Catalogos } from '@/lib/api-admin';
+import { Search, X } from 'lucide-react';
 
 interface FilterBarProps {
   catalogos: Catalogos | undefined;
+  totalCount?: number;
 }
 
-export default function FilterBar({ catalogos }: FilterBarProps) {
-  const { filtros, setFiltro, resetFiltros } = useAdminStore();
-  const [searchValue, setSearchValue] = useState(filtros.q);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+export default function FilterBar({ catalogos, totalCount }: FilterBarProps) {
+  const { filtros, setFiltro } = useAdminStore();
+  const [query, setQuery] = useState(filtros.q);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFiltro('q', searchValue);
+    setFiltro('q', query);
   };
 
-  const hasActiveFilters = filtros.estado || filtros.tipo || filtros.distrito_id || filtros.q;
+  const statusTabs = [
+    { key: '', label: 'Todos' },
+    { key: 'carga', label: 'En carga' },
+    { key: 'en_revision', label: 'Revisión' },
+    { key: 'confirmada', label: 'Confirmadas' },
+  ];
 
   return (
-    <div className="admin-filter-bar">
-      <form onSubmit={handleSearch} className="admin-filter-search-form">
-        <Search size={16} className="admin-filter-search-icon" />
+    <div className="glass-header">
+      {/* Search Input con icono Apple style */}
+      <form onSubmit={handleSearchSubmit} className="glass-search-wrap">
+        <Search size={15} className="glass-search-icon" />
         <input
           type="text"
-          className="admin-filter-input"
-          placeholder="Buscar dirección, nombre, nro..."
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
+          className="glass-search-input"
+          placeholder="Buscar lote, calle o número..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (e.target.value === '') setFiltro('q', '');
+          }}
         />
-        {searchValue && (
-          <button type="button" className="admin-filter-clear" onClick={() => { setSearchValue(''); setFiltro('q', ''); }}>
-            <X size={14} />
+        {query && (
+          <button
+            type="button"
+            className="glass-search-clear"
+            onClick={() => {
+              setQuery('');
+              setFiltro('q', '');
+            }}
+          >
+            <X size={12} />
           </button>
         )}
       </form>
 
-      <button
-        className="admin-filter-toggle-mobile"
-        onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-      >
-        <Filter size={16} />
-        {hasActiveFilters && <span className="admin-filter-dot" />}
-      </button>
+      {/* iOS Segmented Control */}
+      <div className="ios-segmented">
+        {statusTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`ios-segment-btn ${filtros.estado === tab.key ? 'active' : ''}`}
+            onClick={() => setFiltro('estado', tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div className={`admin-filter-selects ${mobileFiltersOpen ? 'mobile-open' : ''}`}>
+      {/* Distrito picker & Contador */}
+      <div className="glass-district-row">
         <select
-          className="admin-filter-select"
-          value={filtros.estado}
-          onChange={(e) => setFiltro('estado', e.target.value)}
-        >
-          <option value="">Todos los estados</option>
-          <option value="carga">En carga</option>
-          <option value="en_revision">En revisión</option>
-          <option value="confirmada">Confirmada</option>
-          <option value="eliminada">Eliminada</option>
-        </select>
-
-        <select
-          className="admin-filter-select"
-          value={filtros.tipo}
-          onChange={(e) => setFiltro('tipo', e.target.value)}
-        >
-          <option value="">Todos los tipos</option>
-          {catalogos?.tipos_relevamiento?.map((t) => (
-            <option key={t.id} value={t.nombre}>{t.nombre}</option>
-          )) || (
-            <>
-              <option value="carie">carie</option>
-              <option value="vacancia">vacancia</option>
-            </>
-          )}
-        </select>
-
-        <select
-          className="admin-filter-select"
+          className="glass-select"
           value={filtros.distrito_id ?? ''}
           onChange={(e) => setFiltro('distrito_id', e.target.value ? Number(e.target.value) : null)}
         >
           <option value="">Todos los distritos</option>
           {catalogos?.distritos?.map((d) => (
-            <option key={d.id} value={d.id}>{d.nombre}</option>
+            <option key={d.id} value={d.id}>
+              Distrito {d.nombre}
+            </option>
           ))}
         </select>
 
-        {hasActiveFilters && (
-          <button className="admin-filter-reset" onClick={() => { resetFiltros(); setSearchValue(''); }}>
-            <X size={14} /> Limpiar
-          </button>
+        {totalCount !== undefined && (
+          <span className="glass-count-chip">
+            {totalCount} {totalCount === 1 ? 'inmueble' : 'inmuebles'}
+          </span>
         )}
       </div>
     </div>

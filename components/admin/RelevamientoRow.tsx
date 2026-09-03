@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { RelevamientoResumen } from '@/lib/api-admin';
-import { StatusBadge } from '@/components/admin/StatusBadge';
 import { useAdminStore } from '@/lib/store';
-import { Landmark, Compass } from 'lucide-react';
+import { ChevronRight, Landmark } from 'lucide-react';
 
 interface RelevamientoRowProps {
   item: RelevamientoResumen;
@@ -14,56 +13,52 @@ export function RelevamientoRow({ item }: RelevamientoRowProps) {
   const { selectedId, selectRelevamiento, setHoveredId } = useAdminStore();
   const isSelected = selectedId === item.id;
 
-  const formatDate = (isoString: string) => {
-    if (!isoString) return '';
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch {
-      return '';
+  const getStatusPill = (estado: string) => {
+    switch (estado) {
+      case 'confirmada':
+        return <span className="ios-pill ios-pill--confirmada"><span className="ios-pill-dot" />Confirmada</span>;
+      case 'en_revision':
+        return <span className="ios-pill ios-pill--en_revision"><span className="ios-pill-dot" />Revisión</span>;
+      case 'eliminada':
+        return <span className="ios-pill ios-pill--eliminada"><span className="ios-pill-dot" />Baja</span>;
+      default:
+        return <span className="ios-pill ios-pill--carga"><span className="ios-pill-dot" />En carga</span>;
     }
   };
 
   return (
     <div
-      className={`admin-row ${isSelected ? 'selected' : ''}`}
+      className={`glass-row ${isSelected ? 'selected' : ''}`}
       onClick={() => selectRelevamiento(item.id)}
       onMouseEnter={() => setHoveredId(item.id)}
       onMouseLeave={() => setHoveredId(null)}
     >
-      <div className="admin-row-main">
-        <div className="admin-row-title">
-          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginRight: '8px' }}>
+      <div className="glass-row-main">
+        <div className="glass-row-header">
+          <span className="glass-lote-tag">
             #{String(item.nro_relevamiento ?? item.id).padStart(3, '0')}
           </span>
-          {item.direccion || item.nombre || 'Inmueble sin dirección'}
+          <span className="glass-row-address">
+            {item.direccion || item.nombre || 'Inmueble sin calle'}
+          </span>
         </div>
-        <div className="admin-row-meta">
+
+        <div className="glass-row-meta">
           <span>{item.distrito || 'Sin distrito'}</span>
-          <span>•</span>
-          <span style={{ textTransform: 'capitalize' }}>{item.tipo}</span>
           {item.patrimonio && (
             <>
-              <span>•</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--accent-dark)', fontWeight: 600 }}>
+              <span className="dot" />
+              <span style={{ color: 'var(--accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                 <Landmark size={11} /> Patrimonio
-              </span>
-            </>
-          )}
-          {item.lat && item.lng && (
-            <>
-              <span>•</span>
-              <span title="Georreferenciado" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                <Compass size={11} /> Con coordenadas
               </span>
             </>
           )}
         </div>
       </div>
 
-      <div className="admin-row-right">
-        <StatusBadge estado={item.estado_registro} size="sm" />
-        <span className="admin-row-date">{formatDate(item.actualizado_en)}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {getStatusPill(item.estado_registro)}
+        <ChevronRight size={14} style={{ color: 'var(--text-muted)', opacity: isSelected ? 1 : 0.6 }} />
       </div>
     </div>
   );
