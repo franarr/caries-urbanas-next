@@ -29,14 +29,50 @@ function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number
     });
 
     map.on('load', () => {
-      new maplibregl.Marker({ color: '#ef7b45' })
-        .setLngLat([lng, lat])
-        .addTo(map);
+      map.resize();
+
+      map.addSource('mini-pin', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+          properties: {},
+        },
+      });
+
+      map.addLayer({
+        id: 'mini-pin-glow',
+        type: 'circle',
+        source: 'mini-pin',
+        paint: {
+          'circle-radius': 16,
+          'circle-color': '#ef7b45',
+          'circle-opacity': 0.35,
+          'circle-blur': 0.6,
+        },
+      });
+
+      map.addLayer({
+        id: 'mini-pin-dot',
+        type: 'circle',
+        source: 'mini-pin',
+        paint: {
+          'circle-radius': 7,
+          'circle-color': '#f0564a',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#FFFFFF',
+        },
+      });
     });
+
+    const timer = setTimeout(() => {
+      map.resize();
+    }, 200);
 
     mapRef.current = map;
 
     return () => {
+      clearTimeout(timer);
       map.remove();
       mapRef.current = null;
     };
@@ -103,12 +139,12 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
 
   return (
     <div
-      className={`modal-overlay ${isOpen ? 'open' : ''}`}
+      className={`admin-modal-overlay ${isOpen ? 'open' : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal">
+      <div className="admin-modal-card">
         {/* Modal Head */}
         <div className="modal-head">
           <div>

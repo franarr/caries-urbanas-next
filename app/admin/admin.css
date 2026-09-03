@@ -485,27 +485,36 @@ tbody tr.selected td {
   text-underline-offset: 4px;
 }
 
-/* ---------- MODAL FICHA ---------- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
+/* ---------- MODAL FICHA (CENTRADO) ---------- */
+.admin-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
   padding: 20px;
 }
 
-.modal-overlay.open {
-  display: flex;
+.admin-modal-overlay.open {
+  display: flex !important;
 }
 
-.modal {
+.admin-modal-card {
+  position: relative !important;
+  inset: auto !important;
+  margin: auto !important;
   width: 660px;
-  max-width: 100%;
+  max-width: 96vw;
   max-height: 88vh;
   background: var(--bg);
   border: 1px solid var(--border-strong);
@@ -513,7 +522,7 @@ tbody tr.selected td {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8);
   animation: modalFadeIn 0.2s ease-out;
 }
 
@@ -801,7 +810,7 @@ tbody tr.selected td {
     width: 100%;
   }
 
-  .modal {
+  .admin-modal-card {
     width: 100%;
     max-height: 94vh;
     border-radius: 14px 14px 0 0;

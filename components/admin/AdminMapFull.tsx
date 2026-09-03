@@ -15,8 +15,14 @@ interface AdminMapFullProps {
 export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const onSelectLoteRef = useRef(onSelectLote);
+  const itemsRef = useRef(items);
   const { selectedId } = useAdminStore();
 
+  onSelectLoteRef.current = onSelectLote;
+  itemsRef.current = items;
+
+  // Inicializar mapa una sola vez
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -24,7 +30,7 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
       container: mapContainerRef.current,
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [-60.700, -31.630],
-      zoom: 12.5,
+      zoom: 12.8,
       minZoom: 10,
       maxZoom: 18,
       attributionControl: false,
@@ -33,17 +39,32 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
     map.on('load', () => {
+      // Fuente con todos los puntos
       map.addSource('full-relevamientos', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
 
+      // Capa de halo para punto seleccionado
+      map.addLayer({
+        id: 'full-points-glow',
+        type: 'circle',
+        source: 'full-relevamientos',
+        paint: {
+          'circle-radius': ['case', ['boolean', ['feature-state', 'selected'], false], 14, 0],
+          'circle-color': '#ef7b45',
+          'circle-opacity': 0.35,
+          'circle-blur': 0.5,
+        },
+      });
+
+      // Capa de círculos
       map.addLayer({
         id: 'full-points',
         type: 'circle',
         source: 'full-relevamientos',
         paint: {
-          'circle-radius': ['case', ['boolean', ['feature-state', 'selected'], false], 9, 6],
+          'circle-radius': ['case', ['boolean', ['feature-state', 'selected'], false], 8, 5.5],
           'circle-color': [
             'match',
             ['get', 'estado_registro'],
@@ -52,16 +73,20 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
             'eliminada', '#777777',
             '#f0564a',
           ],
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#09090b',
+          'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2, 1],
+          'circle-stroke-color': '#FFFFFF',
+          'circle-opacity': 0.95,
         },
       });
 
+      // Click sobre punto
       map.on('click', 'full-points', (e) => {
         if (e.features && e.features[0]) {
           const id = e.features[0].properties?.id;
-          const found = items.find((i) => i.id === id);
-          if (found) onSelectLote(found);
+          const found = itemsRef.current.find((i) => i.id === id);
+          if (found) {
+            onSelectLoteRef.current(found);
+          }
         }
       });
 
@@ -71,6 +96,9 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
       map.on('mouseleave', 'full-points', () => {
         map.getCanvas().style.cursor = '';
       });
+
+      // Cargar datos si items ya estaban disponibles
+      updateSourceData(map, itemsRef.current);
     });
 
     mapRef.current = map;
@@ -79,13 +107,11 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
       map.remove();
       mapRef.current = null;
     };
-  }, [items, onSelectLote]);
+  }, []); // Solo se ejecuta una vez al montar
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const valid = items.filter((i) => i.lat != null && i.lng != null);
+  // Función helper para actualizar GeoJSON
+  const updateSourceData = (map: maplibregl.Map, currentItems: RelevamientoResumen[]) => {
+    const valid = currentItems.filter((i) => i.lat != null && i.lng != null);
     const data: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: valid.map((i) => ({
@@ -102,15 +128,23 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
       })),
     };
 
-    const update = () => {
-      const src = map.getSource('full-relevamientos') as maplibregl.GeoJSONSource;
-      if (src) src.setData(data);
-    };
+    const src = map.getSource('full-relevamientos') as maplibregl.GeoJSONSource;
+    if (src) src.setData(data);
+  };
 
-    if (map.isStyleLoaded()) update();
-    else map.once('load', update);
+  // Actualizar datos sin destruir el mapa
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (map.isStyleLoaded()) {
+      updateSourceData(map, items);
+    } else {
+      map.once('load', () => updateSourceData(map, items));
+    }
   }, [items]);
 
+  // Actualizar selección visual sin destruir el mapa
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
