@@ -21,11 +21,11 @@ export default function AdminLoginPage() {
       router.push('/admin');
     } catch (err: any) {
       if (err.status === 401) {
-        setErrorMsg('credenciales incorrectas');
+        setErrorMsg('Credenciales incorrectas');
       } else if (err.status === 429) {
-        setErrorMsg('demasiados intentos, aguarde 15 min');
+        setErrorMsg('Demasiados intentos, aguarde 15 minutos');
       } else {
-        setErrorMsg(err.message || 'error de conexión');
+        setErrorMsg(err.message || 'Error de conexión');
       }
     } finally {
       setLoading(false);
@@ -41,178 +41,206 @@ export default function AdminLoginPage() {
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        width: '100vw',
-        background: '#09090b',
-        color: '#fafafa',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontSize: '13px',
-        padding: '20px',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        background: '#ffffff',
+        fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
       }}
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '380px',
-          background: '#131316',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '32px 26px',
-          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.5)',
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
         }}
       >
-        <div style={{ marginBottom: '26px' }}>
-          <div
-            style={{
-              fontFamily: "'Archivo', sans-serif",
-              fontSize: '22px',
-              fontWeight: 900,
-              color: '#fafafa',
-              letterSpacing: '-0.03em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Caries Urbanas
-          </div>
-          <div
-            style={{
-              fontSize: '10.5px',
-              color: '#ef7b45',
-              letterSpacing: '1px',
-              marginTop: '3px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-            }}
-          >
-            ADMIN · OBSERVATORIO
-          </div>
-        </div>
-
-        {errorMsg && (
-          <div
-            style={{
-              padding: '10px 14px',
-              background: 'rgba(240, 86, 74, 0.1)',
-              border: '1px solid rgba(240, 86, 74, 0.3)',
-              borderRadius: '8px',
-              color: '#f0564a',
-              fontSize: '12px',
-              fontWeight: 600,
-              marginBottom: '16px',
-            }}
-          >
-            ! {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#a1a1aa', marginBottom: '6px' }}>
-              correo
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="usuario@santafe.gob.ar"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '380px',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            padding: '36px 32px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div style={{ marginBottom: '24px' }}>
+            <h1
               style={{
-                width: '100%',
-                background: '#09090b',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                color: '#fafafa',
-                fontFamily: 'inherit',
-                fontWeight: 600,
-                fontSize: '13px',
-                outline: 'none',
+                fontFamily: "'Archivo', sans-serif",
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#111827',
+                letterSpacing: '-0.02em',
+                marginBottom: '4px',
               }}
-            />
+            >
+              Ingreso al Sistema
+            </h1>
+            <p style={{ fontSize: '12.5px', color: '#6b7280', lineHeight: 1.4 }}>
+              Caries Urbanas · Administración de relevamientos
+            </p>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#a1a1aa', marginBottom: '6px' }}>
-              contraseña
-            </label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••••••"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
+          {errorMsg && (
+            <div
               style={{
-                width: '100%',
-                background: '#09090b',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                color: '#fafafa',
-                fontFamily: 'inherit',
-                fontWeight: 600,
-                fontSize: '13px',
-                outline: 'none',
+                padding: '9px 12px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '4px',
+                color: '#b91c1c',
+                fontSize: '12px',
+                fontWeight: 500,
+                marginBottom: '16px',
               }}
-            />
+            >
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '6px',
+                }}
+              >
+                Usuario / Correo
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="usuario@santafe.gob.ar"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  padding: '0 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  color: '#111827',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '6px',
+                }}
+              >
+                Contraseña
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••••••"
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  padding: '0 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  color: '#111827',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                marginTop: '6px',
+                width: '100%',
+                height: '38px',
+                background: '#111827',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+            >
+              {loading ? 'Verificando...' : 'Ingresar'}
+            </button>
+          </form>
+
+          <div
+            style={{
+              margin: '22px 0 16px',
+              borderTop: '1px solid #f3f4f6',
+              textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            <span
+              style={{
+                position: 'relative',
+                top: '-9px',
+                background: '#ffffff',
+                padding: '0 8px',
+                fontSize: '11px',
+                color: '#9ca3af',
+              }}
+            >
+              acceso de evaluación
+            </span>
           </div>
 
           <button
-            type="submit"
-            disabled={loading}
+            type="button"
+            onClick={handleDemo}
             style={{
-              background: '#ef7b45',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '11px',
-              fontFamily: 'inherit',
-              fontSize: '13px',
-              fontWeight: 700,
+              width: '100%',
+              height: '34px',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '4px',
+              color: '#374151',
+              fontSize: '12px',
+              fontWeight: 600,
               cursor: 'pointer',
-              marginTop: '4px',
-              transition: 'opacity 0.15s',
             }}
           >
-            {loading ? 'autenticando...' : 'ingresar →'}
+            Acceder en modo prototipo →
           </button>
-        </form>
-
-        <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-          <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#60606a' }}>o bien</span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
         </div>
-
-        <button
-          type="button"
-          onClick={handleDemo}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            color: '#a1a1aa',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            fontFamily: 'inherit',
-            fontSize: '12.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#fafafa';
-            e.currentTarget.style.borderColor = '#ef7b45';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#a1a1aa';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-          }}
-        >
-          explorar en modo prototipo →
-        </button>
       </div>
+
+      <footer
+        style={{
+          borderTop: '1px solid #e5e7eb',
+          padding: '14px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '11px',
+          color: '#9ca3af',
+        }}
+      >
+        <span>Municipalidad de Santa Fe · Observatorio Urbano</span>
+        <span>Sistema de Gestión de Inmuebles Ociosos</span>
+      </footer>
     </div>
   );
 }

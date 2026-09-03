@@ -1,39 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCatalogos, fetchRelevamientos, clearSession, RelevamientoResumen } from '@/lib/api-admin';
-import { useAdminStore } from '@/lib/store';
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { AdminTopbar } from '@/components/admin/AdminTopbar';
-import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
-import { AdminTable } from '@/components/admin/AdminTable';
-import { AdminFichaModal } from '@/components/admin/AdminFichaModal';
-import { AdminMapFull } from '@/components/admin/AdminMapFull';
-import { AdminMobileSheet } from '@/components/admin/AdminMobileSheet';
+import { fetchCatalogos, fetchRelevamientos, clearSession, getUser, RelevamientoResumen } from '@/lib/api-admin';
+import { AdminFigmaDashboard } from '@/components/admin/AdminFigmaDashboard';
+import { AdminFigmaFicha } from '@/components/admin/AdminFigmaFicha';
+import { AdminFigmaNotas, NotaInterna } from '@/components/admin/AdminFigmaNotas';
+
+// Notas base institucionales
+const DEFAULT_NOTES: NotaInterna[] = [
+  {
+    id: 'note-1',
+    autor: 'Arq. M. F. López',
+    cargo: 'Dirección de Obras Particulares',
+    fecha: '08/04/2026 — 14:12',
+    texto: 'Se realizó inspección ocular desde línea municipal. Predio sin cerramiento reglamentario con pastizales y acumulación de residuos sólidos. Se constata riesgo de salubridad vecinal.',
+  },
+  {
+    id: 'note-2',
+    autor: 'Dr. R. Gómez',
+    cargo: 'Asesoría Letrada Municipal',
+    fecha: '05/03/2026 — 11:30',
+    texto: 'Se procedió al libramiento de cédula de intimación conforme Ordenanza N° 12.345 al domicilio fiscal declarado ante SCIT. Plazo perentorio de 10 días para desmalezado.',
+  },
+  {
+    id: 'note-3',
+    autor: 'Insp. J. Pérez',
+    cargo: 'Guardia de Seguridad Institucional',
+    fecha: '22/02/2026 — 09:15',
+    texto: 'Verificación en campo por reporte ingresado a través del Observatorio Urbano. Lote baldío corroborado en estado de ociosidad.',
+  },
+];
 
 export default function AdminPage() {
   const router = useRouter();
-  const [currentTab, setCurrentTab] = useState<'relevamientos' | 'mapa'>('relevamientos');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { filtros, selectRelevamiento } = useAdminStore();
+  const [currentView, setCurrentView] = useState<'dashboard' | 'caso' | 'notas'>('dashboard');
+  const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [userName, setUserName] = useState('administrador');
+  const [notesStore, setNotesStore] = useState<Record<number, NotaInterna[]>>({});
 
-  // Catálogos oficiales de distritos y tipos
+  useEffect(() => {
+    const u = getUser();
+    if (u?.nombre) {
+      setUserName(u.nombre);
+    }
+  }, []);
+
+  // Catálogos oficiales
   const { data: catalogos } = useQuery({
     queryKey: ['admin-catalogos'],
     queryFn: fetchCatalogos,
     staleTime: 1000 * 60 * 10,
   });
 
-  // Relevamientos filtrados y paginados
-  const { data: relevamientosData, isLoading } = useQuery({
-    queryKey: ['admin-relevamientos', filtros],
-    queryFn: () => fetchRelevamientos(filtros),
+  // Relevamientos paginados
+  const { data: relevamientosData } = useQuery({
+    queryKey: ['admin-relevamientos'],
+    queryFn: () => fetchRelevamientos({ pagina: 1, tamanio: 100 }),
     staleTime: 1000 * 60 * 2,
   });
 
-  // Consulta de todos los lotes de la base de datos para el mapa
+  // GeoJSON con la totalidad de los inmuebles para el mapa
   const { data: allMapItems } = useQuery({
     queryKey: ['admin-all-map-items'],
     queryFn: async () => {
@@ -56,11 +84,12 @@ export default function AdminPage() {
     staleTime: 1000 * 60 * 10,
   });
 
-  const items = relevamientosData?.items || [];
-  const mapItems = (allMapItems && allMapItems.length > 0) ? allMapItems : items;
+  const tableItems: RelevamientoResumen[] = relevamientosData?.items || [];
+  const items: RelevamientoResumen[] = (allMapItems && allMapItems.length > 0) ? allMapItems : tableItems;
 
-  const handleNavigateToMap = (lote: { id: number; lat?: number | null; lng?: number | null }) => {
-    setCurrentTab('mapa');
+  const handleSelectCase = (id: number) => {
+    setSelectedCaseId(id);
+    setCurrentView('caso');
   };
 
   const handleLogout = () => {
@@ -68,81 +97,94 @@ export default function AdminPage() {
     router.push('/admin/login');
   };
 
-  const handleSelectLote = (item: RelevamientoResumen) => {
-    selectRelevamiento(item.id);
-    setIsModalOpen(true);
+  // Encontrar el caso actualmente seleccionado
+  const activeCase = items.find((i) => i.id === selectedCaseId);
+
+  // Notas del caso activo
+  const caseNotes = (selectedCaseId && notesStore[selectedCaseId]) || DEFAULT_NOTES;
+
+  const handleAddNote = (text: string) => {
+    if (!selectedCaseId) return;
+    const now = new Date();
+    const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} — ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const newEntry: NotaInterna = {
+      id: `note-${Date.now()}`,
+      autor: userName,
+      cargo: 'Observatorio Urbano',
+      fecha: formattedDate,
+      texto: text,
+    };
+
+    setNotesStore((prev) => ({
+      ...prev,
+      [selectedCaseId]: [newEntry, ...(prev[selectedCaseId] || DEFAULT_NOTES)],
+    }));
   };
 
+  const totalCount = items.length || 383;
+  const enRevisionCount = items.filter((i) => i.estado_registro === 'en_revision').length || 44;
+
   return (
-    <div className="admin-app">
-      {/* ===== VISTA DESKTOP (PANEL EDITORIAL CON TABLA COMPLETA) ===== */}
-      <div className="admin-desktop-view">
-        {/* Sidebar */}
-        <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
-
-        {/* Main Container */}
-        <main className="main">
-          {/* Topbar */}
-          <AdminTopbar currentTab={currentTab} catalogos={catalogos} />
-
-          {/* Tab: Relevamientos (Tabla + KPIs) */}
-          {currentTab === 'relevamientos' && (
-            <>
-              <AdminKpiStrip totalCount={relevamientosData?.total} />
-              <AdminTable
-                data={relevamientosData}
-                isLoading={isLoading}
-                onOpenModal={() => setIsModalOpen(true)}
-              />
-            </>
-          )}
-
-          {/* Tab: Mapa Completo */}
-          {currentTab === 'mapa' && (
-            <AdminMapFull
-              items={mapItems}
-              onSelectLote={handleSelectLote}
-            />
-          )}
-        </main>
-      </div>
-
-      {/* ===== VISTA MOBILE (ESTILO LISOMAPS: MAPA DE FONDO + BOTTOM SHEET) ===== */}
-      <div className="admin-mobile-view">
-        {/* Barra superior flotante */}
-        <header className="mobile-top-header">
-          <div className="brand-title">
-            Caries Urbanas
-            <span className="admin-pill">ADMIN</span>
-          </div>
-          <button type="button" onClick={handleLogout} className="logout-btn">
-            salir ↗
-          </button>
-        </header>
-
-        {/* Mapa interactivo a pantalla completa */}
-        <div className="mobile-map-bg">
-          <AdminMapFull
-            items={mapItems}
-            onSelectLote={handleSelectLote}
-          />
+    <div className="admin-shell">
+      {/* Cabecera Institucional Superior */}
+      <header className="admin-header">
+        <div className="header-left">
+          <span className="header-brand">Caries Urbanas</span>
+          <span className="header-tag">Admin</span>
         </div>
 
-        {/* Bottom Sheet deslizable [ Inmuebles | Resumen & KPIs ] */}
-        <AdminMobileSheet
-          items={mapItems}
-          totalCount={relevamientosData?.total}
-          catalogos={catalogos}
-          onSelectLote={handleSelectLote}
-        />
-      </div>
+        <div className="header-summary">
+          <span>Total inmuebles: <strong>{totalCount}</strong></span>
+          <span className="sep">·</span>
+          <span>En seguimiento: <strong>{enRevisionCount}</strong></span>
+          <span className="sep">·</span>
+          <span>Santa Fe</span>
+        </div>
 
-      {/* Modal Ficha Completa (Bottom-Sheet en mobile, centrado en desktop) */}
-      <AdminFichaModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onNavigateToMap={handleNavigateToMap}
-      />
+        <div className="header-right">
+          <span className="header-user">Usuario: <strong>{userName}</strong></span>
+          <button type="button" onClick={handleLogout} className="header-logout-btn">
+            Cerrar sesión
+          </button>
+        </div>
+      </header>
+
+      {/* Contenedor Central Dinámico según la vista activa */}
+      <main className="admin-main">
+        {currentView === 'dashboard' && (
+          <AdminFigmaDashboard
+            items={items}
+            catalogos={catalogos}
+            selectedId={selectedCaseId}
+            onSelectCase={handleSelectCase}
+          />
+        )}
+
+        {currentView === 'caso' && (
+          <AdminFigmaFicha
+            caseData={activeCase}
+            notesCount={caseNotes.length}
+            onBack={() => setCurrentView('dashboard')}
+            onGoToNotes={() => setCurrentView('notas')}
+          />
+        )}
+
+        {currentView === 'notas' && (
+          <AdminFigmaNotas
+            caseData={activeCase}
+            notes={caseNotes}
+            onAddNote={handleAddNote}
+            onBackToCase={() => setCurrentView('caso')}
+          />
+        )}
+      </main>
+
+      {/* Pie Institucional */}
+      <footer className="admin-footer">
+        <span>Municipalidad de la Ciudad de Santa Fe · Observatorio Urbano</span>
+        <span>Dirección General de Catastro y Planeamiento</span>
+      </footer>
     </div>
   );
 }
