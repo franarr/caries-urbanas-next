@@ -107,9 +107,21 @@ export function AdminFigmaDashboard({
         {/* Manija táctil de arrastre (visible solo en mobile) */}
         <div className="drawer-handle-bar" onClick={toggleDrawer}>
           <div className="drawer-handle" />
-          <span className="drawer-mobile-title">
-            Listado de Inmuebles ({filtered.length})
-          </span>
+          <div className="drawer-mobile-row">
+            <span className="drawer-mobile-title">
+              Listado de Inmuebles ({filtered.length})
+            </span>
+            <button
+              type="button"
+              className="drawer-toggle-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDrawerState(drawerState === 'full' ? 'half' : 'full');
+              }}
+            >
+              {drawerState === 'full' ? 'Reducir lista ↓' : 'Deslizar arriba ↑'}
+            </button>
+          </div>
         </div>
 
         <div className="table-controls">
@@ -179,10 +191,10 @@ export function AdminFigmaDashboard({
                   </td>
                 </tr>
               ) : (
-                paginated.map((item) => {
+                paginated.map((item, idx) => {
                   const caseNum = `#${String(item.nro_relevamiento || item.id).padStart(4, '0')}`;
                   return (
-                    <tr key={item.id} onClick={() => onSelectCase(item.id)}>
+                    <tr key={`desk-${item.id}-${idx}`} onClick={() => onSelectCase(item.id)}>
                       <td className="case-id">{caseNum}</td>
                       <td className="case-addr">{item.direccion || item.nombre || 'Sin dirección registrada'}</td>
                       <td className="case-district">{item.distrito || 'Santa Fe'}</td>
@@ -214,11 +226,11 @@ export function AdminFigmaDashboard({
               No se encontraron inmuebles registrados.
             </div>
           ) : (
-            paginated.map((item) => {
+            paginated.map((item, idx) => {
               const caseNum = `#${String(item.nro_relevamiento || item.id).padStart(4, '0')}`;
               return (
                 <div
-                  key={item.id}
+                  key={`mob-${item.id}-${idx}`}
                   className="mobile-case-card"
                   onClick={() => onSelectCase(item.id)}
                 >

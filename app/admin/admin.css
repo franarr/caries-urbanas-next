@@ -846,18 +846,19 @@ body {
   }
 
   .mobile-drawer-full {
-    height: 88vh;
+    height: calc(100vh - 52px) !important;
   }
 
   .drawer-handle-bar {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px 0 6px;
+    padding: 8px 0 6px;
     cursor: pointer;
     flex-shrink: 0;
     background: #ffffff;
     border-radius: 18px 18px 0 0;
+    border-bottom: 1px solid #f3f4f6;
   }
 
   .drawer-handle {
@@ -865,6 +866,15 @@ body {
     height: 4px;
     border-radius: 2px;
     background: #d1d5db;
+    margin-bottom: 4px;
+  }
+
+  .drawer-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 2px 16px 0;
   }
 
   .drawer-mobile-title {
@@ -873,7 +883,18 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-top: 4px;
+  }
+
+  .drawer-toggle-btn {
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px 9px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
   }
 
   .table-controls {

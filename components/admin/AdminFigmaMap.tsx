@@ -131,19 +131,68 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
         }
       });
 
-      map.on('mouseleave', 'figma-points-dot', () => {
-        map.getCanvas().style.cursor = '';
-        hoverPopup.remove();
-      });
+      // Popup interactivo al hacer clic
+      let activeClickPopup: maplibregl.Popup | null = null;
 
-      // Clic en punto -> selecciona caso y abre el archivo
+      // Clic en punto -> centrado suave y apertura de ficha previa
       map.on('click', 'figma-points-dot', (e) => {
         if (e.features && e.features[0]) {
-          const id = e.features[0].properties?.id;
-          if (id) {
-            hoverPopup.remove();
-            onSelectRef.current(Number(id));
-          }
+          const feat = e.features[0];
+          const props = feat.properties;
+          const coords = (feat.geometry as any).coordinates.slice();
+          const id = Number(props?.id);
+
+          hoverPopup.remove();
+          if (activeClickPopup) activeClickPopup.remove();
+
+          // Centrado suave mostrando el movimiento hacia el lote
+          map.easeTo({
+            center: coords,
+            zoom: Math.max(map.getZoom(), 15.2),
+            offset: window.innerWidth <= 768 ? [0, -100] : [0, 0],
+            duration: 400,
+          });
+
+          const caseNum = `#${String(props?.nro || id).padStart(4, '0')}`;
+          const address = props?.direccion || 'Sin dirección registrada';
+          const estado = props?.estado || 'carga';
+          const estadoLabel = estado === 'confirmada' ? 'Tratado' : estado === 'en_revision' ? 'En revisión' : 'Sin tratar';
+          const dotColor = estado === 'confirmada' ? '#16a34a' : estado === 'en_revision' ? '#d97706' : '#e11d48';
+
+          const container = document.createElement('div');
+          container.className = 'map-click-card';
+          container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-family: var(--font-heading); font-size: 13px; font-weight: 800; color: #111827;">Caso ${caseNum}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: ${dotColor};">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor};"></span>
+                ${estadoLabel}
+              </span>
+            </div>
+            <div style="font-size: 12px; color: #4b5563; margin-bottom: 10px; line-height: 1.3;">
+              ${address}
+            </div>
+            <button id="btn-open-detail-${id}" class="btn-black" style="width: 100%; height: 32px; font-size: 11.5px;">
+              Ver archivo completo →
+            </button>
+          `;
+
+          const btn = container.querySelector(`#btn-open-detail-${id}`);
+          btn?.addEventListener('click', () => {
+            activeClickPopup?.remove();
+            onSelectRef.current(id);
+          });
+
+          activeClickPopup = new maplibregl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '260px',
+            offset: 12,
+            className: 'figma-click-popup',
+          })
+            .setLngLat(coords)
+            .setDOMContent(container)
+            .addTo(map);
         }
       });
     });
