@@ -535,14 +535,9 @@ export function initMapApp() {
             badge.style.color = statusInfo.color;
         }
 
-        let statusPill = document.getElementById('detail-status-pill');
-        if (!statusPill && badge && badge.parentNode) {
-            statusPill = document.createElement('span');
-            statusPill.id = 'detail-status-pill';
-            statusPill.style.cssText = `display:inline-block;padding:2px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:1px;margin-left:8px;`;
-            badge.parentNode.insertBefore(statusPill, badge.nextSibling);
-        }
-        if(statusPill) {
+        const statusPill = document.getElementById('detail-status-pill');
+        if (statusPill) {
+            statusPill.style.display = 'inline-block';
             statusPill.textContent = statusInfo.label.toUpperCase();
             statusPill.style.background = `${statusInfo.color}18`;
             statusPill.style.color = statusInfo.color;
@@ -550,23 +545,20 @@ export function initMapApp() {
 
         const setTxt = (id: string, txt: string) => { const e = document.getElementById(id); if(e) e.textContent = txt; };
         setTxt('detail-title', p.direccion || p.nombre || 'Sin dirección');
-        setTxt('detail-address', p.direccion || '—');
         setTxt('detail-district', p.distrito || '—');
+        setTxt('detail-rou', p.rou || '—');
+        setTxt('detail-vecinal', p.vecinal || '—');
         setTxt('detail-zone', `Zona ${p.zona_inmobiliaria || '—'}`);
         setTxt('detail-id', `#${p.nro_relevamiento || '—'}`);
+        setTxt('detail-manzana', '—');
 
-        // Mostrar datos extra de la ficha pública (descripción, manzana, etc.)
-        let descEl = document.getElementById('detail-desc');
-        if (!descEl) {
-            descEl = document.createElement('p');
-            descEl.id = 'detail-desc';
-            descEl.style.cssText = 'font-size:13px; color:var(--text-body); margin: 8px 0 12px; line-height:1.5; font-family:var(--font-body);';
-            const rowsEl = document.querySelector('.detail-rows');
-            if (rowsEl && rowsEl.parentNode) rowsEl.parentNode.insertBefore(descEl, rowsEl);
+        const descEl = document.getElementById('detail-desc');
+        if (descEl) {
+            descEl.textContent = p.descripcion || '';
+            descEl.style.display = p.descripcion ? 'block' : 'none';
         }
-        descEl.textContent = '';
 
-        // Fetch de la ficha pública ampliada (lazy, solo al abrir)
+        // Fetch de la ficha pública ampliada (lazy)
         if (featureId) {
             fetch(`${CONFIG.fichaPublicaPath}/${featureId}`)
                 .then(r => r.ok ? r.json() : null)
@@ -574,67 +566,23 @@ export function initMapApp() {
                     if (!ficha) return;
                     if (ficha.descripcion && descEl) {
                         descEl.textContent = ficha.descripcion;
+                        descEl.style.display = 'block';
                     }
                     if (ficha.manzana) {
-                        let mzRow = document.getElementById('detail-row-manzana');
-                        if (!mzRow) {
-                            const rowsContainer = document.querySelector('.detail-rows');
-                            if (rowsContainer) {
-                                mzRow = document.createElement('div');
-                                mzRow.id = 'detail-row-manzana';
-                                mzRow.className = 'detail-row';
-                                mzRow.innerHTML = '<span class="detail-key">Manzana</span><span class="detail-val" id="detail-manzana">—</span>';
-                                rowsContainer.appendChild(mzRow);
-                            }
-                        }
-                        const mzVal = document.getElementById('detail-manzana');
-                        if (mzVal) mzVal.textContent = ficha.manzana;
+                        setTxt('detail-manzana', ficha.manzana);
+                    }
+                    if (ficha.rou) {
+                        setTxt('detail-rou', ficha.rou);
                     }
                 })
-                .catch(() => {}); // Silenciar errores de ficha (no bloquear la UI)
+                .catch(() => {});
         }
-
-        // Vecinal (ya viene en el GeoJSON)
-        let vecRow = document.getElementById('detail-row-vecinal');
-        if (!vecRow) {
-            const rowsContainer = document.querySelector('.detail-rows');
-            if (rowsContainer) {
-                vecRow = document.createElement('div');
-                vecRow.id = 'detail-row-vecinal';
-                vecRow.className = 'detail-row';
-                vecRow.innerHTML = '<span class="detail-key">Vecinal</span><span class="detail-val" id="detail-vecinal">—</span>';
-                // Insertar después del distrito
-                const distRow = document.querySelectorAll('.detail-row')[1];
-                if (distRow && distRow.nextSibling) {
-                    rowsContainer.insertBefore(vecRow, distRow.nextSibling);
-                } else {
-                    rowsContainer.appendChild(vecRow);
-                }
-            }
-        }
-        const vecVal = document.getElementById('detail-vecinal');
-        if (vecVal) vecVal.textContent = p.vecinal || '—';
-
-        // ROU row
-        let rouRow = document.getElementById('detail-row-rou');
-        if (!rouRow) {
-            const rowsContainer = document.querySelector('.detail-rows');
-            if (rowsContainer) {
-                rouRow = document.createElement('div');
-                rouRow.id = 'detail-row-rou';
-                rouRow.className = 'detail-row';
-                rouRow.innerHTML = '<span class="detail-key">ROU</span><span class="detail-val" id="detail-rou">—</span>';
-                rowsContainer.appendChild(rouRow);
-            }
-        }
-        const rouVal = document.getElementById('detail-rou');
-        if (rouVal) rouVal.textContent = p.rou || '—';
 
         const btnFly = document.getElementById('detail-btn-fly');
         if(btnFly) {
             const addr = encodeURIComponent(`${p.direccion || ''}, Santa Fe, Argentina`);
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${addr}`;
-            btnFly.textContent = 'Ver en Google Maps →';
+            btnFly.textContent = 'Ver en Google Maps ↗';
             btnFly.onclick = () => window.open(mapsUrl, '_blank', 'noopener');
         }
         
@@ -651,7 +599,7 @@ export function initMapApp() {
             State.map.flyTo({
                 center: coords,
                 zoom: targetZoom,
-                offset: isMobile ? [0, -130] : [0, 60],
+                offset: isMobile ? [0, -120] : [0, 80],
                 speed: 1.2,
                 curve: 1.3,
                 essential: true,
@@ -664,7 +612,12 @@ export function initMapApp() {
             const cBtn = document.getElementById('detail-close');
             if(cBtn) cBtn.style.display = 'flex';
             
-            currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true, maxWidth: '340px', offset: 15 })
+            currentPopup = new maplibregl.Popup({
+                closeButton: false,
+                closeOnClick: true,
+                maxWidth: '480px',
+                offset: 14,
+            })
                 .setLngLat(feat.geometry.coordinates)
                 .setDOMContent(detailEl)
                 .addTo(State.map);

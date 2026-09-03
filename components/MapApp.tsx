@@ -392,28 +392,35 @@ export default function MapApp() {
                 </div>
             </div>
 
-            {/* ========== FEATURE DETAIL (BOTTOM SHEET) ========== */}
+            {/* ========== FEATURE DETAIL (TARJETA HORIZONTAL) ========== */}
             <div id="feature-detail" className="feature-detail hidden">
                 <button id="detail-close" className="detail-close" style={{ zIndex: 10 }}>✕</button>
                 
-                <div className="detail-header" style={{ marginBottom: '12px', paddingRight: '24px' }}>
-                    <span id="detail-badge" className="detail-badge">LOTE</span>
-                    <h2 id="detail-title" className="detail-title" style={{ marginTop: '6px' }}>—</h2>
+                <div className="detail-header">
+                    <div className="detail-tags">
+                        <span id="detail-badge" className="detail-badge">LOTE</span>
+                        <span id="detail-status-pill" className="detail-status-pill" style={{ display: 'none' }}>—</span>
+                    </div>
+                    <h2 id="detail-title" className="detail-title">—</h2>
+                    <p id="detail-desc" className="detail-desc"></p>
                 </div>
 
-                <div id="detail-image-container" style={{ width: '100%', height: '200px', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px', display: 'none', background: 'var(--bg-off)', position: 'relative', border: '1px solid var(--border)' }}>
+                <div id="detail-image-container" style={{ width: '100%', height: '140px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px', display: 'none', background: 'var(--bg-off)', position: 'relative', border: '1px solid var(--border)' }}>
                     <img id="detail-image" alt="Vista del Inmueble" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', backdropFilter: 'blur(2px)', fontWeight: 500 }}>Registro Visual</div>
                 </div>
 
                 <div className="detail-rows">
                     <div className="detail-row">
-                        <span className="detail-key">Dirección</span>
-                        <span className="detail-val" id="detail-address">—</span>
-                    </div>
-                    <div className="detail-row">
                         <span className="detail-key">Distrito</span>
                         <span className="detail-val" id="detail-district">—</span>
+                    </div>
+                    <div className="detail-row">
+                        <span className="detail-key">ROU</span>
+                        <span className="detail-val" id="detail-rou">—</span>
+                    </div>
+                    <div className="detail-row">
+                        <span className="detail-key">Vecinal</span>
+                        <span className="detail-val" id="detail-vecinal">—</span>
                     </div>
                     <div className="detail-row">
                         <span className="detail-key">Zona Inmobiliaria</span>
@@ -423,11 +430,15 @@ export default function MapApp() {
                         <span className="detail-key">ID Relevamiento</span>
                         <span className="detail-val" id="detail-id">—</span>
                     </div>
+                    <div className="detail-row">
+                        <span className="detail-key">Manzana</span>
+                        <span className="detail-val" id="detail-manzana">—</span>
+                    </div>
                 </div>
                 
-                <div className="detail-actions" style={{ marginTop: '10px' }}>
-                    <button className="btn-secondary btn-full" id="detail-btn-fly">
-                        Centrar en Mapa
+                <div className="detail-actions">
+                    <button className="btn-secondary btn-full" id="detail-btn-fly" style={{ height: '34px', fontSize: '11.5px', fontWeight: 600 }}>
+                        Ver en Google Maps ↗
                     </button>
                 </div>
             </div>
