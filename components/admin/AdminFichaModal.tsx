@@ -8,7 +8,15 @@ import { useAdminStore } from '@/lib/store';
 
 maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
 
-function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number | null; address: string }) {
+function ModalMiniMap({
+  lat,
+  lng,
+  onExpand,
+}: {
+  lat?: number | null;
+  lng?: number | null;
+  onExpand?: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
@@ -47,7 +55,7 @@ function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number
         paint: {
           'circle-radius': 16,
           'circle-color': '#ef7b45',
-          'circle-opacity': 0.35,
+          'circle-opacity': 0.4,
           'circle-blur': 0.6,
         },
       });
@@ -78,6 +86,12 @@ function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number
     };
   }, [lat, lng]);
 
+  const handleZoom = (delta: number) => {
+    if (mapRef.current) {
+      mapRef.current.zoomTo(mapRef.current.getZoom() + delta);
+    }
+  };
+
   return (
     <div className="mini-map">
       {lat != null && lng != null ? (
@@ -87,14 +101,60 @@ function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number
           sin coordenadas registradas
         </div>
       )}
-      <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Santa Fe, Argentina`)}`}
-        target="_blank"
-        rel="noopener noreferrer"
+
+      {/* Controles de Zoom en Mini-mapa */}
+      <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 10 }}>
+        <button
+          type="button"
+          onClick={() => handleZoom(1)}
+          style={{
+            width: '24px',
+            height: '24px',
+            background: 'rgba(19, 19, 22, 0.85)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '4px',
+            color: 'var(--text)',
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="Acercar mapa"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => handleZoom(-1)}
+          style={{
+            width: '24px',
+            height: '24px',
+            background: 'rgba(19, 19, 22, 0.85)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '4px',
+            color: 'var(--text)',
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="Alejar mapa"
+        >
+          −
+        </button>
+      </div>
+
+      {/* Botón para expandir en nuestro propio mapa */}
+      <button
+        type="button"
+        onClick={onExpand}
         className="link"
+        style={{ cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
       >
-        ver en google maps →
-      </a>
+        <span>expandir en mapa general ↗</span>
+      </button>
     </div>
   );
 }
@@ -102,9 +162,10 @@ function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number
 interface AdminFichaModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigateToMap?: (lote: { id: number; lat?: number | null; lng?: number | null }) => void;
 }
 
-export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
+export function AdminFichaModal({ isOpen, onClose, onNavigateToMap }: AdminFichaModalProps) {
   const { selectedId } = useAdminStore();
 
   const { data: ficha, isLoading } = useQuery<FichaCompleta>({
@@ -137,6 +198,17 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
   const address = ficha?.direccion || ficha?.nombre || 'Inmueble Relevado';
   const distrito = `${ficha?.distrito || 'CANDIOTI SUR'} · Santa Fe`;
 
+  const handleExpandToMap = () => {
+    onClose();
+    if (onNavigateToMap) {
+      onNavigateToMap({
+        id: ficha?.id ?? selectedId!,
+        lat: ficha?.lat,
+        lng: ficha?.lng,
+      });
+    }
+  };
+
   return (
     <div
       className={`admin-modal-overlay ${isOpen ? 'open' : ''}`}
@@ -150,10 +222,17 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
           <div>
             <div className="case-line">
               <span className={`dot ${status.dot}`} />
-              {formattedCase} · {status.text}
+              <span style={{ color: 'var(--accent)' }}>{formattedCase}</span> · {status.text}
             </div>
             <h2>{address}</h2>
-            <div className="distrito">{distrito}</div>
+            <div className="distrito">
+              {distrito}
+              {ficha?.patrimonio && (
+                <span style={{ color: 'var(--amber)', marginLeft: '8px', fontWeight: 800 }}>
+                  ★ PATRIMONIO HISTÓRICO
+                </span>
+              )}
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}>
             ✕
@@ -175,8 +254,12 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
                 "{ficha?.descripcion || 'Predio en estado de abandono sin cerramiento reglamentario ni mantenimiento de malezas. Posible riesgo sanitario reportado.'}"
               </div>
 
-              {/* Mini Map con Coordenadas Reales de MapLibre */}
-              <ModalMiniMap lat={ficha?.lat} lng={ficha?.lng} address={address} />
+              {/* Mini Map con Zoom y enlace a nuestro propio mapa */}
+              <ModalMiniMap
+                lat={ficha?.lat}
+                lng={ficha?.lng}
+                onExpand={handleExpandToMap}
+              />
 
               {/* Grid 2 Columnas */}
               <div className="grid2">
@@ -184,7 +267,9 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
                   <div className="card-title">datos del inmueble</div>
                   <div className="kv">
                     <span className="k">terreno</span>
-                    <span className="v">{ficha?.superficie_terreno_m2 ? `${ficha.superficie_terreno_m2} m²` : '485.20 m²'}</span>
+                    <span className="v" style={{ color: '#38bdf8' }}>
+                      {ficha?.superficie_terreno_m2 ? `${ficha.superficie_terreno_m2} m²` : '485.20 m²'}
+                    </span>
                   </div>
                   <div className="kv">
                     <span className="k">construida</span>
@@ -196,12 +281,20 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
                   </div>
                   <div className="kv">
                     <span className="k">patrimonio</span>
-                    <span className="v">{ficha?.patrimonio ? 'sí' : 'no'}</span>
+                    <span className="v">
+                      {ficha?.patrimonio ? (
+                        <span style={{ color: 'var(--amber)', fontWeight: 800 }}>
+                          ★ sí ({ficha.patrimonio_tipo || 'parcial'})
+                        </span>
+                      ) : (
+                        'no'
+                      )}
+                    </span>
                   </div>
                 </div>
 
                 <div className="card">
-                  <div className="card-title">contactos</div>
+                  <div className="card-title">contactos y zona</div>
                   <div className="kv">
                     <span className="k">referente</span>
                     <span className="v">{ficha?.contactos?.[0]?.nombre || 'Mariana L.'}</span>
@@ -211,38 +304,65 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
                     <span className="v">{ficha?.contactos?.[0]?.vinculo || 'vecino'}</span>
                   </div>
                   <div className="kv">
-                    <span className="k">verificado</span>
-                    <span className="v">{ficha?.geo_verificado ? 'sí' : 'no'}</span>
+                    <span className="k">georreferenciado</span>
+                    <span className="v" style={{ color: 'var(--green)', fontWeight: 700 }}>
+                      {ficha?.lat && ficha?.lng ? '✓ verificado' : 'pendiente'}
+                    </span>
                   </div>
                   <div className="kv">
-                    <span className="k">zonificación</span>
-                    <span className="v">{ficha?.rou || 'R6'}</span>
+                    <span className="k">zonificación (rou)</span>
+                    <span className="v" style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 700 }}>
+                      {ficha?.rou || 'R6'}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Titulares SCIT */}
+              {/* Titulares SCIT con colores de alerta/sucesión */}
               <div className="card">
-                <div className="card-title">titulares (scit provincial)</div>
+                <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>titulares (scit provincial)</span>
+                  <span style={{ color: 'var(--green)', fontSize: '10px' }}>✓ auditado ley 25.326</span>
+                </div>
                 {ficha?.titulares && ficha.titulares.length > 0 ? (
                   ficha.titulares.map((tit) => (
                     <div key={tit.titular_id} className="titular">
-                      <div className="name">{tit.nombre}</div>
+                      <div className="name" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{tit.nombre}</span>
+                        <span style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '12px' }}>
+                          {tit.porcentaje}%
+                        </span>
+                      </div>
                       <div className="doc">
-                        {tit.cuit ? `CUIT ${tit.cuit}` : tit.dni ? `DNI ${tit.dni}` : '—'} · {tit.rol} · {tit.porcentaje}%
-                        {tit.estado_supervivencia === 'fallecido' && ' · sucesión'}
+                        {tit.cuit ? `CUIT ${tit.cuit}` : tit.dni ? `DNI ${tit.dni}` : '—'} · {tit.rol}
+                        {tit.estado_supervivencia === 'fallecido' && (
+                          <span style={{ color: 'var(--red)', fontWeight: 700, background: 'rgba(240, 86, 74, 0.12)', padding: '1px 6px', borderRadius: '4px', marginLeft: '6px' }}>
+                            sucesión
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))
                 ) : (
                   <>
                     <div className="titular">
-                      <div className="name">Pérez Juan Carlos</div>
-                      <div className="doc">DNI 12.345.678 · condómino · 50%</div>
+                      <div className="name" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pérez Juan Carlos</span>
+                        <span style={{ color: 'var(--accent)', fontWeight: 800 }}>50%</span>
+                      </div>
+                      <div className="doc">DNI 12.345.678 · condómino</div>
                     </div>
                     <div className="titular">
-                      <div className="name">Pérez María Elena</div>
-                      <div className="doc">DNI 13.456.789 · sucesión · 50%</div>
+                      <div className="name" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pérez María Elena</span>
+                        <span style={{ color: 'var(--accent)', fontWeight: 800 }}>50%</span>
+                      </div>
+                      <div className="doc">
+                        DNI 13.456.789 ·
+                        <span style={{ color: 'var(--red)', fontWeight: 700, background: 'rgba(240, 86, 74, 0.12)', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                          sucesión
+                        </span>
+                      </div>
                     </div>
                   </>
                 )}
@@ -250,7 +370,7 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
 
               {/* Historial */}
               <div className="card">
-                <div className="card-title">historial</div>
+                <div className="card-title">historial de estados</div>
                 {ficha?.historial_estados && ficha.historial_estados.length > 0 ? (
                   ficha.historial_estados.map((h, idx) => (
                     <div key={idx} className="timeline-item">

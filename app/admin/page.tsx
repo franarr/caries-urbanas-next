@@ -56,6 +56,10 @@ export default function AdminPage() {
   const items = relevamientosData?.items || [];
   const mapItems = allMapItems || items;
 
+  const handleNavigateToMap = (lote: { id: number; lat?: number | null; lng?: number | null }) => {
+    setCurrentTab('mapa');
+  };
+
   return (
     <div className="admin-app">
       {/* Sidebar */}
@@ -91,6 +95,7 @@ export default function AdminPage() {
       <AdminFichaModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onNavigateToMap={handleNavigateToMap}
       />
     </div>
   );

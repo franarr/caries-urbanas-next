@@ -117,11 +117,29 @@ export function AdminTable({ data, isLoading, onOpenModal }: AdminTableProps) {
                     <td>{formattedId}</td>
                     <td className="addr-cell">
                       {item.direccion || item.nombre || 'Sin dirección registrada'}
-                      <div className="distrito">{item.distrito || 'SANTA FE'}</div>
+                      <div className="distrito" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                        <span>{item.distrito || 'SANTA FE'}</span>
+                        {item.patrimonio && (
+                          <span
+                            style={{
+                              color: 'var(--amber)',
+                              background: 'rgba(232, 171, 66, 0.12)',
+                              border: '1px solid rgba(232, 171, 66, 0.25)',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            ★ PATRIMONIO
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>{getStatusBadge(item.estado_registro)}</td>
-                    <td>{300 + ((item.id * 17) % 250)} m²</td>
-                    <td>{formatDate(item.actualizado_en)}</td>
+                    <td style={{ fontWeight: 600, color: '#e4e4e7' }}>{300 + ((item.id * 17) % 250)} m²</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{formatDate(item.actualizado_en)}</td>
                     <td className="chevron">›</td>
                   </tr>
                 );
