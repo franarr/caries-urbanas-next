@@ -21,6 +21,7 @@ export function AdminFigmaDashboard({
   const [selectedDistrito, setSelectedDistrito] = useState<string>('todos');
   const [selectedEstado, setSelectedEstado] = useState<string>('todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [drawerState, setDrawerState] = useState<'peek' | 'half' | 'full'>('half');
   const pageSize = 10;
 
   // Filtrado reactivo en memoria
@@ -43,6 +44,12 @@ export function AdminFigmaDashboard({
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const toggleDrawer = () => {
+    if (drawerState === 'peek') setDrawerState('half');
+    else if (drawerState === 'half') setDrawerState('full');
+    else setDrawerState('half');
+  };
 
   const getStatusBadge = (estado?: string) => {
     switch (estado) {
@@ -69,7 +76,7 @@ export function AdminFigmaDashboard({
 
   return (
     <div className="split-dashboard">
-      {/* Columna Izquierda: Mapa Caries Urbanas */}
+      {/* Columna Izquierda: Mapa Caries Urbanas (en mobile ocupa toda la pantalla de fondo) */}
       <section className="map-panel">
         <div className="panel-header">
           <span className="panel-title">Mapa Caries Urbanas</span>
@@ -95,8 +102,16 @@ export function AdminFigmaDashboard({
         </div>
       </section>
 
-      {/* Columna Derecha: Buscador y Tabla */}
-      <section className="table-panel">
+      {/* Columna Derecha / Bottom Drawer en mobile */}
+      <section className={`table-panel mobile-drawer-${drawerState}`}>
+        {/* Manija táctil de arrastre (visible solo en mobile) */}
+        <div className="drawer-handle-bar" onClick={toggleDrawer}>
+          <div className="drawer-handle" />
+          <span className="drawer-mobile-title">
+            Listado de Inmuebles ({filtered.length})
+          </span>
+        </div>
+
         <div className="table-controls">
           <div className="search-input-wrap">
             <input
@@ -144,7 +159,8 @@ export function AdminFigmaDashboard({
           </div>
         </div>
 
-        <div className="table-wrap">
+        {/* Tabla tradicional en Desktop */}
+        <div className="table-wrap desktop-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
@@ -191,10 +207,42 @@ export function AdminFigmaDashboard({
           </table>
         </div>
 
+        {/* Lista de tarjetas táctiles en Mobile */}
+        <div className="table-wrap mobile-cards-list">
+          {paginated.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+              No se encontraron inmuebles registrados.
+            </div>
+          ) : (
+            paginated.map((item) => {
+              const caseNum = `#${String(item.nro_relevamiento || item.id).padStart(4, '0')}`;
+              return (
+                <div
+                  key={item.id}
+                  className="mobile-case-card"
+                  onClick={() => onSelectCase(item.id)}
+                >
+                  <div className="card-top">
+                    <span className="case-id">Caso {caseNum}</span>
+                    {getStatusBadge(item.estado_registro)}
+                  </div>
+                  <div className="case-addr">
+                    {item.direccion || item.nombre || 'Sin dirección registrada'}
+                  </div>
+                  <div className="card-bottom">
+                    <span className="case-district">{item.distrito || 'Santa Fe'}</span>
+                    <span className="action-btn-link">Ver archivo ›</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         <div className="table-pagination">
           <span>
-            Mostrando {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} a{' '}
-            {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length} casos
+            {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} a{' '}
+            {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length}
           </span>
 
           <div className="pagination-controls">
