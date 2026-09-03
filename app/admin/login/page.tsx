@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
         width: '100vw',
         background: '#09090b',
         color: '#fafafa',
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
         fontSize: '13px',
         padding: '20px',
       }}
@@ -58,16 +58,34 @@ export default function AdminLoginPage() {
           maxWidth: '380px',
           background: '#131316',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '28px 24px',
+          borderRadius: '14px',
+          padding: '32px 26px',
           boxShadow: '0 24px 60px rgba(0, 0, 0, 0.5)',
         }}
       >
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontFamily: "'Spectral', serif", fontSize: '20px', fontWeight: 600, color: '#fafafa' }}>
+        <div style={{ marginBottom: '26px' }}>
+          <div
+            style={{
+              fontFamily: "'Archivo', sans-serif",
+              fontSize: '22px',
+              fontWeight: 900,
+              color: '#fafafa',
+              letterSpacing: '-0.03em',
+              textTransform: 'uppercase',
+            }}
+          >
             Caries Urbanas
           </div>
-          <div style={{ fontSize: '10.5px', color: '#ef7b45', letterSpacing: '0.5px', marginTop: '2px', fontWeight: 600 }}>
+          <div
+            style={{
+              fontSize: '10.5px',
+              color: '#ef7b45',
+              letterSpacing: '1px',
+              marginTop: '3px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+            }}
+          >
             ADMIN · OBSERVATORIO
           </div>
         </div>
@@ -75,12 +93,13 @@ export default function AdminLoginPage() {
         {errorMsg && (
           <div
             style={{
-              padding: '8px 12px',
+              padding: '10px 14px',
               background: 'rgba(240, 86, 74, 0.1)',
               border: '1px solid rgba(240, 86, 74, 0.3)',
-              borderRadius: '6px',
+              borderRadius: '8px',
               color: '#f0564a',
               fontSize: '12px',
+              fontWeight: 600,
               marginBottom: '16px',
             }}
           >
@@ -88,9 +107,9 @@ export default function AdminLoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '11px', color: '#97979d', marginBottom: '5px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#a1a1aa', marginBottom: '6px' }}>
               correo
             </label>
             <input
@@ -103,18 +122,19 @@ export default function AdminLoginPage() {
                 width: '100%',
                 background: '#09090b',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '6px',
-                padding: '8px 10px',
+                borderRadius: '8px',
+                padding: '10px 12px',
                 color: '#fafafa',
                 fontFamily: 'inherit',
-                fontSize: '12.5px',
+                fontWeight: 600,
+                fontSize: '13px',
                 outline: 'none',
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', color: '#97979d', marginBottom: '5px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#a1a1aa', marginBottom: '6px' }}>
               contraseña
             </label>
             <input
@@ -127,11 +147,12 @@ export default function AdminLoginPage() {
                 width: '100%',
                 background: '#09090b',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '6px',
-                padding: '8px 10px',
+                borderRadius: '8px',
+                padding: '10px 12px',
                 color: '#fafafa',
                 fontFamily: 'inherit',
-                fontSize: '12.5px',
+                fontWeight: 600,
+                fontSize: '13px',
                 outline: 'none',
               }}
             />
@@ -144,11 +165,11 @@ export default function AdminLoginPage() {
               background: '#ef7b45',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: '6px',
-              padding: '9px',
+              borderRadius: '8px',
+              padding: '11px',
               fontFamily: 'inherit',
-              fontSize: '12.5px',
-              fontWeight: 500,
+              fontSize: '13px',
+              fontWeight: 700,
               cursor: 'pointer',
               marginTop: '4px',
               transition: 'opacity 0.15s',
@@ -158,9 +179,9 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-          <span style={{ fontSize: '10px', color: '#55555b' }}>o bien</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#60606a' }}>o bien</span>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
         </div>
 
@@ -170,12 +191,13 @@ export default function AdminLoginPage() {
           style={{
             width: '100%',
             background: 'transparent',
-            color: '#97979d',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            borderRadius: '6px',
-            padding: '8px 10px',
+            color: '#a1a1aa',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '8px',
+            padding: '10px 12px',
             fontFamily: 'inherit',
-            fontSize: '12px',
+            fontSize: '12.5px',
+            fontWeight: 700,
             cursor: 'pointer',
             transition: 'all 0.15s',
           }}
@@ -184,8 +206,8 @@ export default function AdminLoginPage() {
             e.currentTarget.style.borderColor = '#ef7b45';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#97979d';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+            e.currentTarget.style.color = '#a1a1aa';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
           }}
         >
           explorar en modo prototipo →
