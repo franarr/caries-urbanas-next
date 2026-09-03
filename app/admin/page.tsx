@@ -30,7 +30,31 @@ export default function AdminPage() {
     staleTime: 1000 * 60 * 2,
   });
 
+  // Consulta de todos los lotes de la base de datos para la vista de mapa
+  const { data: allMapItems } = useQuery({
+    queryKey: ['admin-all-map-items'],
+    queryFn: async () => {
+      const res = await fetch('https://cariesbackend-production.up.railway.app/api/public/inmuebles.geojson');
+      const geojson = await res.json();
+      return (geojson.features || []).map((f: any) => ({
+        id: f.id,
+        nro_relevamiento: f.properties.nro_relevamiento,
+        tipo: f.properties.tipo,
+        nombre: f.properties.nombre,
+        direccion: f.properties.direccion,
+        distrito: f.properties.distrito,
+        estado_registro: f.properties.estado_registro || 'carga',
+        patrimonio: f.properties.patrimonio || false,
+        lat: f.geometry?.coordinates ? f.geometry.coordinates[1] : null,
+        lng: f.geometry?.coordinates ? f.geometry.coordinates[0] : null,
+        actualizado_en: f.properties.actualizado_en || new Date().toISOString(),
+      }));
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
   const items = relevamientosData?.items || [];
+  const mapItems = allMapItems || items;
 
   return (
     <div className="admin-app">
@@ -57,7 +81,7 @@ export default function AdminPage() {
         {/* Tab: Mapa Completo */}
         {currentTab === 'mapa' && (
           <AdminMapFull
-            items={items}
+            items={mapItems}
             onSelectLote={() => setIsModalOpen(true)}
           />
         )}

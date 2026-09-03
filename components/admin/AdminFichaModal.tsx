@@ -1,9 +1,67 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import * as maplibregl from 'maplibre-gl';
 import { fetchFichaCompleta, FichaCompleta } from '@/lib/api-admin';
 import { useAdminStore } from '@/lib/store';
+
+maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+
+function ModalMiniMap({ lat, lng, address }: { lat?: number | null; lng?: number | null; address: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || lat == null || lng == null) return;
+
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [lng, lat],
+      zoom: 16.5,
+      attributionControl: false,
+    });
+
+    map.on('load', () => {
+      new maplibregl.Marker({ color: '#ef7b45' })
+        .setLngLat([lng, lat])
+        .addTo(map);
+    });
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [lat, lng]);
+
+  return (
+    <div className="mini-map">
+      {lat != null && lng != null ? (
+        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-tertiary)', fontSize: '11px' }}>
+          sin coordenadas registradas
+        </div>
+      )}
+      <a
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Santa Fe, Argentina`)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="link"
+      >
+        ver en google maps →
+      </a>
+    </div>
+  );
+}
 
 interface AdminFichaModalProps {
   isOpen: boolean;
@@ -81,18 +139,8 @@ export function AdminFichaModal({ isOpen, onClose }: AdminFichaModalProps) {
                 "{ficha?.descripcion || 'Predio en estado de abandono sin cerramiento reglamentario ni mantenimiento de malezas. Posible riesgo sanitario reportado.'}"
               </div>
 
-              {/* Mini Map con Pin y Enlace */}
-              <div className="mini-map">
-                <div className="pin" />
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Santa Fe, Argentina`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="link"
-                >
-                  ver en google maps →
-                </a>
-              </div>
+              {/* Mini Map con Coordenadas Reales de MapLibre */}
+              <ModalMiniMap lat={ficha?.lat} lng={ficha?.lng} address={address} />
 
               {/* Grid 2 Columnas */}
               <div className="grid2">
