@@ -54,7 +54,7 @@ export default function AdminPage() {
   });
 
   const items = relevamientosData?.items || [];
-  const mapItems = allMapItems || items;
+  const mapItems = (allMapItems && allMapItems.length > 0) ? allMapItems : items;
 
   const handleNavigateToMap = (lote: { id: number; lat?: number | null; lng?: number | null }) => {
     setCurrentTab('mapa');

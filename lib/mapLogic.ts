@@ -650,39 +650,39 @@ export function initMapApp() {
             setHighlight(coords);
         };
 
-        // Manejo del zoom suave sin saltos
+        // Manejo del zoom ágil y apertura inmediata sin esperas lentas
         if (feat.geometry?.coordinates) {
             const coords = feat.geometry.coordinates;
             const currentZoom = State.map.getZoom();
             const isMobile = window.innerWidth <= 768;
 
+            setHighlight(coords);
+
             if (currentZoom < 15.5) {
-                // Si estamos lejos, cerramos cualquier popup previo y volamos primero al lote
+                // Si estamos lejos, transición suave y rápida de 400ms
                 if (currentPopup) {
                     currentPopup.remove();
                     currentPopup = null;
                 }
-                setHighlight(coords);
 
-                State.map.flyTo({
+                State.map.easeTo({
                     center: coords,
-                    zoom: 16.8,
+                    zoom: 16.5,
                     offset: isMobile ? [0, -120] : [0, 80],
-                    speed: 1.3,
-                    curve: 1.25,
+                    duration: 400,
                     essential: true,
                 });
 
-                // Abrir la tarjeta únicamente cuando el vuelo termine
-                State.map.once('moveend', () => {
+                // Abrir la tarjeta rápidamente (250ms) sin esperar 2 segundos de flyTo
+                setTimeout(() => {
                     showCardAtCoords(coords);
-                });
+                }, 250);
             } else {
-                // Si ya estamos en zoom de calle (>= 15.5), centrado suave y apertura instantánea
+                // Si ya estamos cerca, micro-centrado de 200ms y apertura instantánea
                 State.map.easeTo({
                     center: coords,
                     offset: isMobile ? [0, -120] : [0, 80],
-                    duration: 350,
+                    duration: 200,
                 });
                 showCardAtCoords(coords);
             }
