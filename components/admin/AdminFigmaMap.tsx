@@ -148,7 +148,13 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
       });
     });
 
+    // Forzar resize para mobile
+    const timer = setTimeout(() => {
+      map.resize();
+    }, 250);
+
     return () => {
+      clearTimeout(timer);
       map.remove();
       mapRef.current = null;
     };
@@ -157,28 +163,36 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
   // Actualizar datos de la fuente cuando items cambie
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map) return;
 
-    const source = map.getSource('figma-points') as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      const valid = items.filter((i) => i.lat != null && i.lng != null);
-      source.setData({
-        type: 'FeatureCollection',
-        features: valid.map((i) => ({
-          type: 'Feature',
-          id: i.id,
-          geometry: {
-            type: 'Point',
-            coordinates: [i.lng!, i.lat!],
-          },
-          properties: {
+    const updateSource = () => {
+      const source = map.getSource('figma-points') as maplibregl.GeoJSONSource | undefined;
+      if (source) {
+        const valid = items.filter((i) => i.lat != null && i.lng != null);
+        source.setData({
+          type: 'FeatureCollection',
+          features: valid.map((i) => ({
+            type: 'Feature',
             id: i.id,
-            nro: i.nro_relevamiento || i.id,
-            direccion: i.direccion || i.nombre || 'Sin dirección',
-            estado: i.estado_registro || 'carga',
-          },
-        })),
-      });
+            geometry: {
+              type: 'Point',
+              coordinates: [i.lng!, i.lat!],
+            },
+            properties: {
+              id: i.id,
+              nro: i.nro_relevamiento || i.id,
+              direccion: i.direccion || i.nombre || 'Sin dirección',
+              estado: i.estado_registro || 'carga',
+            },
+          })),
+        });
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      updateSource();
+    } else {
+      map.once('load', updateSource);
     }
   }, [items]);
 

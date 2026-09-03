@@ -169,11 +169,28 @@ let demoGeoJsonCache: any = null;
 export async function fetchRelevamientos(params: ListadoParams = {}): Promise<ListadoResponse> {
   if (getToken() === 'demo-token') {
     if (!demoGeoJsonCache) {
-      const res = await fetch(`${API_URL}/public/inmuebles.geojson`);
-      demoGeoJsonCache = await res.json();
+      try {
+        const res = await fetch(`${API_URL}/public/inmuebles.geojson`);
+        if (res.ok) {
+          demoGeoJsonCache = await res.json();
+        }
+      } catch (err) {
+        console.warn('Fallo fetch a Railway, usando respaldo local:', err);
+      }
+
+      if (!demoGeoJsonCache) {
+        try {
+          const localRes = await fetch('/data/caries_puntos.geojson');
+          if (localRes.ok) {
+            demoGeoJsonCache = await localRes.json();
+          }
+        } catch (localErr) {
+          console.error('Error cargando respaldo local:', localErr);
+        }
+      }
     }
 
-    let list: any[] = demoGeoJsonCache.features || [];
+    let list: any[] = demoGeoJsonCache?.features || [];
 
     // Filtros
     if (params.q) {

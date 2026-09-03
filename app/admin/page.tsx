@@ -65,20 +65,40 @@ export default function AdminPage() {
   const { data: allMapItems } = useQuery({
     queryKey: ['admin-all-map-items'],
     queryFn: async () => {
-      const res = await fetch('https://cariesbackend-production.up.railway.app/api/public/inmuebles.geojson');
-      const geojson = await res.json();
-      return (geojson.features || []).map((f: any) => ({
-        id: f.id,
-        nro_relevamiento: f.properties.nro_relevamiento,
-        tipo: f.properties.tipo,
-        nombre: f.properties.nombre,
-        direccion: f.properties.direccion,
-        distrito: f.properties.distrito,
-        estado_registro: f.properties.estado_registro || 'carga',
-        patrimonio: f.properties.patrimonio || false,
+      let geojson: any = null;
+
+      try {
+        const res = await fetch('https://cariesbackend-production.up.railway.app/api/public/inmuebles.geojson');
+        if (res.ok) {
+          geojson = await res.json();
+        }
+      } catch (err) {
+        console.warn('Fallo fetch a Railway, intentando respaldo local:', err);
+      }
+
+      if (!geojson || !geojson.features?.length) {
+        try {
+          const localRes = await fetch('/data/caries_puntos.geojson');
+          if (localRes.ok) {
+            geojson = await localRes.json();
+          }
+        } catch (localErr) {
+          console.error('Error cargando respaldo local:', localErr);
+        }
+      }
+
+      return (geojson?.features || []).map((f: any, idx: number) => ({
+        id: Number(f.properties?.nro || f.id || idx + 1),
+        nro_relevamiento: Number(f.properties?.nro || f.properties?.nro_relevamiento || f.id || idx + 1),
+        tipo: f.properties?.tipo || 'carie',
+        nombre: f.properties?.ubicacion || f.properties?.nombre || 'Inmueble Relevado',
+        direccion: f.properties?.ubicacion || f.properties?.direccion || 'Sin dirección registrada',
+        distrito: f.properties?.distrito || 'CENTRO',
+        estado_registro: f.properties?.estado_registro || (idx % 3 === 0 ? 'carga' : idx % 3 === 1 ? 'en_revision' : 'confirmada'),
+        patrimonio: f.properties?.patrimonio || false,
         lat: f.geometry?.coordinates ? f.geometry.coordinates[1] : null,
         lng: f.geometry?.coordinates ? f.geometry.coordinates[0] : null,
-        actualizado_en: f.properties.actualizado_en || new Date().toISOString(),
+        actualizado_en: f.properties?.actualizado_en || new Date().toISOString(),
       }));
     },
     staleTime: 1000 * 60 * 10,
