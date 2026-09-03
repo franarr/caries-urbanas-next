@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getToken } from '@/lib/api-admin';
-import { AdminHeader } from '@/components/admin/AdminHeader';
 import './admin.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -48,10 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="admin-layout">
-        {!isLoginPage && <AdminHeader />}
-        {children}
-      </div>
+      {children}
     </QueryClientProvider>
   );
 }

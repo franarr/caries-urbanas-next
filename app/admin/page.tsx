@@ -4,24 +4,27 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCatalogos, fetchRelevamientos } from '@/lib/api-admin';
 import { useAdminStore } from '@/lib/store';
-import FilterBar from '@/components/admin/FilterBar';
-import { RelevamientoList } from '@/components/admin/RelevamientoList';
-import { AdminMap } from '@/components/admin/AdminMap';
-import { SidePeek } from '@/components/admin/SidePeek';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminTopbar } from '@/components/admin/AdminTopbar';
+import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
+import { AdminTable } from '@/components/admin/AdminTable';
+import { AdminFichaModal } from '@/components/admin/AdminFichaModal';
+import { AdminMapFull } from '@/components/admin/AdminMapFull';
 
-export default function AdminDashboardPage() {
+export default function AdminPage() {
+  const [currentTab, setCurrentTab] = useState<'relevamientos' | 'mapa'>('relevamientos');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { filtros } = useAdminStore();
-  const [mobileMinimized, setMobileMinimized] = useState(false);
 
-  // Consulta de catálogos oficiales
+  // Catálogos oficiales de distritos y tipos
   const { data: catalogos } = useQuery({
     queryKey: ['admin-catalogos'],
     queryFn: fetchCatalogos,
     staleTime: 1000 * 60 * 10,
   });
 
-  // Consulta paginada y filtrada de relevamientos
-  const { data: relevamientosData, isLoading, isError } = useQuery({
+  // Relevamientos filtrados y paginados
+  const { data: relevamientosData, isLoading } = useQuery({
     queryKey: ['admin-relevamientos', filtros],
     queryFn: () => fetchRelevamientos(filtros),
     staleTime: 1000 * 60 * 2,
@@ -30,34 +33,41 @@ export default function AdminDashboardPage() {
   const items = relevamientosData?.items || [];
 
   return (
-    <div className="admin-viewport">
-      {/* 1. Mapa Inmersivo a Pantalla Completa */}
-      <div className="admin-map-canvas">
-        <AdminMap items={items} />
-      </div>
+    <div className="admin-app">
+      {/* Sidebar */}
+      <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
-      {/* 2. Tarjeta Flotante Izquierda / Bottom Sheet en Mobile (Liquid Glass Drawer) */}
-      <aside className={`admin-glass-drawer ${mobileMinimized ? 'minimized' : ''}`}>
-        {/* Tirador táctil para móviles */}
-        <div
-          className="sheet-handle"
-          onClick={() => setMobileMinimized(!mobileMinimized)}
-          title="Alternar panel"
-        />
+      {/* Main Container */}
+      <main className="main">
+        {/* Topbar */}
+        <AdminTopbar currentTab={currentTab} catalogos={catalogos} />
 
-        {/* Filtros segmentados estilo iOS y buscador */}
-        <FilterBar catalogos={catalogos} totalCount={relevamientosData?.total} />
+        {/* Tab: Relevamientos (Tabla + KPIs) */}
+        {currentTab === 'relevamientos' && (
+          <>
+            <AdminKpiStrip totalCount={relevamientosData?.total} />
+            <AdminTable
+              data={relevamientosData}
+              isLoading={isLoading}
+              onOpenModal={() => setIsModalOpen(true)}
+            />
+          </>
+        )}
 
-        {/* Listado en celda de vidrio líquido */}
-        <RelevamientoList
-          data={relevamientosData}
-          isLoading={isLoading}
-          isError={isError}
-        />
-      </aside>
+        {/* Tab: Mapa Completo */}
+        {currentTab === 'mapa' && (
+          <AdminMapFull
+            items={items}
+            onSelectLote={() => setIsModalOpen(true)}
+          />
+        )}
+      </main>
 
-      {/* 3. Ficha Flotante Derecha / Inspector de Lote (Liquid Glass Inspector) */}
-      <SidePeek />
+      {/* Modal Ficha Completa */}
+      <AdminFichaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

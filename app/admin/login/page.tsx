@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, loginDemo } from '@/lib/api-admin';
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -22,162 +21,175 @@ export default function AdminLoginPage() {
       router.push('/admin');
     } catch (err: any) {
       if (err.status === 401) {
-        setErrorMsg('Credenciales incorrectas.');
+        setErrorMsg('credenciales incorrectas');
       } else if (err.status === 429) {
-        setErrorMsg('Demasiados intentos. Aguardá 15 minutos.');
+        setErrorMsg('demasiados intentos, aguarde 15 min');
       } else {
-        setErrorMsg(err.message || 'Error al conectar con la autenticación.');
+        setErrorMsg(err.message || 'error de conexión');
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDemo = () => {
+    loginDemo('admin');
+    router.push('/admin');
+  };
+
   return (
-    <div className="login-canvas">
-      <div className="login-glass-card">
-        <div style={{ textAlign: 'center', marginBottom: '26px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              padding: '12px',
-              background: '#FFFFFF',
-              borderRadius: '20px',
-              boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-              marginBottom: '14px',
-            }}
-          >
-            <img src="/image/cariesurbanas.svg" alt="Caries Urbanas" style={{ width: '36px', height: '36px' }} />
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        width: '100vw',
+        background: '#09090b',
+        color: '#fafafa',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '13px',
+        padding: '20px',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '380px',
+          background: '#131316',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
+          padding: '28px 24px',
+          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontFamily: "'Spectral', serif", fontSize: '20px', fontWeight: 600, color: '#fafafa' }}>
+            Caries Urbanas
           </div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-0.03em', margin: 0 }}>
-            Centro de Operaciones
-          </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Observatorio Urbano de Santa Fe
-          </p>
+          <div style={{ fontSize: '10.5px', color: '#ef7b45', letterSpacing: '0.5px', marginTop: '2px', fontWeight: 600 }}>
+            ADMIN · OBSERVATORIO
+          </div>
         </div>
 
         {errorMsg && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 14px',
-              background: 'rgba(217, 48, 37, 0.08)',
-              border: '1px solid rgba(217, 48, 37, 0.2)',
-              borderRadius: 'var(--ios-radius-sm)',
-              color: 'var(--red)',
-              fontSize: '0.8125rem',
+              padding: '8px 12px',
+              background: 'rgba(240, 86, 74, 0.1)',
+              border: '1px solid rgba(240, 86, 74, 0.3)',
+              borderRadius: '6px',
+              color: '#f0564a',
+              fontSize: '12px',
               marginBottom: '16px',
             }}
           >
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-            <span>{errorMsg}</span>
+            ! {errorMsg}
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>
-              Correo electrónico
+            <label style={{ display: 'block', fontSize: '11px', color: '#97979d', marginBottom: '5px' }}>
+              correo
             </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="email"
-                required
-                className="glass-search-input"
-                style={{ padding: '0 36px 0 14px', borderRadius: 'var(--ios-radius-sm)', background: '#FFFFFF' }}
-                placeholder="usuario@santafe.gob.ar"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-              <Mail size={15} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-            </div>
+            <input
+              type="email"
+              required
+              placeholder="usuario@santafe.gob.ar"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#09090b',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '6px',
+                padding: '8px 10px',
+                color: '#fafafa',
+                fontFamily: 'inherit',
+                fontSize: '12.5px',
+                outline: 'none',
+              }}
+            />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>
-              Contraseña
+            <label style={{ display: 'block', fontSize: '11px', color: '#97979d', marginBottom: '5px' }}>
+              contraseña
             </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="password"
-                required
-                className="glass-search-input"
-                style={{ padding: '0 36px 0 14px', borderRadius: 'var(--ios-radius-sm)', background: '#FFFFFF' }}
-                placeholder="••••••••••••"
-                value={contrasena}
-                onChange={(e) => setContrasena(e.target.value)}
-                autoComplete="current-password"
-              />
-              <Lock size={15} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-            </div>
+            <input
+              type="password"
+              required
+              placeholder="••••••••••••"
+              value={contrasena}
+              onChange={(e) => setContrasena(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#09090b',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '6px',
+                padding: '8px 10px',
+                color: '#fafafa',
+                fontFamily: 'inherit',
+                fontSize: '12.5px',
+                outline: 'none',
+              }}
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary btn-full"
             style={{
-              padding: '12px',
-              borderRadius: 'var(--ios-radius-sm)',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              background: '#ef7b45',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '9px',
+              fontFamily: 'inherit',
+              fontSize: '12.5px',
+              fontWeight: 500,
+              cursor: 'pointer',
               marginTop: '4px',
-              boxShadow: '0 8px 24px rgba(232, 93, 38, 0.25)',
+              transition: 'opacity 0.15s',
             }}
           >
-            {loading ? (
-              <>
-                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Validando...</span>
-              </>
-            ) : (
-              <>
-                <span>Ingresar con cuenta</span>
-                <ArrowRight size={15} />
-              </>
-            )}
+            {loading ? 'autenticando...' : 'ingresar →'}
           </button>
         </form>
 
-        <div style={{ margin: '18px 0 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
-          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            O para demostración
-          </span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
+        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+          <span style={{ fontSize: '10px', color: '#55555b' }}>o bien</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
         </div>
 
         <button
           type="button"
-          onClick={() => {
-            loginDemo('admin');
-            router.push('/admin');
-          }}
-          className="admin-island-btn accent"
+          onClick={handleDemo}
           style={{
-            justifyContent: 'center',
-            padding: '12px',
-            borderRadius: 'var(--ios-radius-sm)',
-            fontSize: '0.875rem',
             width: '100%',
+            background: 'transparent',
+            color: '#97979d',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            borderRadius: '6px',
+            padding: '8px 10px',
+            fontFamily: 'inherit',
+            fontSize: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#fafafa';
+            e.currentTarget.style.borderColor = '#ef7b45';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#97979d';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)';
           }}
         >
-          <Sparkles size={14} />
-          <span>Explorar en Modo Prototipo</span>
+          explorar en modo prototipo →
         </button>
-
-        <div style={{ marginTop: '20px', fontSize: '0.6875rem', color: 'var(--text-muted)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-          <ShieldCheck size={13} color="var(--green)" />
-          <span>Acceso seguro · Sesiones auditadas</span>
-        </div>
       </div>
     </div>
   );
