@@ -642,6 +642,22 @@ export function initMapApp() {
         const imgContainer = document.getElementById('detail-image-container');
         if(imgContainer) imgContainer.style.display = 'none';
         
+        // Hacer zoom al sitio de la carie de forma cinematográfica
+        if (feat.geometry?.coordinates) {
+            const coords = feat.geometry.coordinates;
+            const targetZoom = Math.max(State.map.getZoom(), 16.8);
+            const isMobile = window.innerWidth <= 768;
+
+            State.map.flyTo({
+                center: coords,
+                zoom: targetZoom,
+                offset: isMobile ? [0, -130] : [0, 60],
+                speed: 1.2,
+                curve: 1.3,
+                essential: true,
+            });
+        }
+
         if (window.innerWidth > 768) {
             if (currentPopup) currentPopup.remove();
             detailEl.classList.remove('hidden');
