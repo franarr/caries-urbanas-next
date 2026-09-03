@@ -99,15 +99,42 @@ export function initMapApp() {
         return new Promise(r => State.map.on('load', r));
     }
 
+    async function safeFetchJson(url: string, retries = 2, delay = 1000): Promise<any> {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (res.ok) {
+                    return await res.json();
+                }
+            } catch (err) {
+                if (i === retries) {
+                    console.warn(`[API] No se pudo descargar ${url}:`, err);
+                    return null;
+                }
+                await new Promise(r => setTimeout(r, delay));
+            }
+        }
+        return null;
+    }
+
     async function loadData() {
-        const [geoRes, heatRes] = await Promise.all([
-            fetch(CONFIG.geojsonPath),
-            fetch(CONFIG.heatmapPath).catch(() => null)
+        const [geoJson, heatJson] = await Promise.all([
+            safeFetchJson(CONFIG.geojsonPath),
+            safeFetchJson(CONFIG.heatmapPath)
         ]);
-        if (!geoRes.ok) throw new Error(`Error al cargar inmuebles: ${geoRes.status}`);
-        State.geojson = await geoRes.json();
-        if (heatRes && heatRes.ok) {
-            State.heatmapData = await heatRes.json();
+
+        if (geoJson && geoJson.features) {
+            State.geojson = geoJson;
+        } else {
+            console.warn('[API] Datos no disponibles temporalmente. Usando colección segura.');
+            State.geojson = { type: 'FeatureCollection', features: [] };
+        }
+
+        if (heatJson) {
+            State.heatmapData = heatJson;
         }
     }
 
@@ -590,51 +617,76 @@ export function initMapApp() {
         const imgContainer = document.getElementById('detail-image-container');
         if(imgContainer) imgContainer.style.display = 'none';
         
-        // Hacer zoom al sitio de la carie de forma cinematográfica
+        // Función para renderizar la tarjeta de forma limpia y estable
+        const showCardAtCoords = (coords: any) => {
+            if (window.innerWidth > 768) {
+                if (currentPopup) currentPopup.remove();
+                detailEl.classList.remove('hidden');
+                const cBtn = document.getElementById('detail-close');
+                if(cBtn) cBtn.style.display = 'flex';
+                
+                currentPopup = new maplibregl.Popup({
+                    closeButton: false,
+                    closeOnClick: true,
+                    maxWidth: '480px',
+                    offset: 14,
+                    anchor: 'bottom', // Bloquea el ancla apuntando abajo para que jamás rebote arriba/abajo
+                })
+                    .setLngLat(coords)
+                    .setDOMContent(detailEl)
+                    .addTo(State.map);
+                    
+                currentPopup.on('close', () => {
+                    clearHighlight();
+                    document.body.appendChild(detailEl);
+                    detailEl.classList.add('hidden');
+                });
+            } else {
+                document.body.appendChild(detailEl);
+                const cBtn = document.getElementById('detail-close');
+                if(cBtn) cBtn.style.display = 'flex';
+                detailEl.classList.remove('hidden');
+            }
+            setHighlight(coords);
+        };
+
+        // Manejo del zoom suave sin saltos
         if (feat.geometry?.coordinates) {
             const coords = feat.geometry.coordinates;
-            const targetZoom = Math.max(State.map.getZoom(), 16.8);
+            const currentZoom = State.map.getZoom();
             const isMobile = window.innerWidth <= 768;
 
-            State.map.flyTo({
-                center: coords,
-                zoom: targetZoom,
-                offset: isMobile ? [0, -120] : [0, 80],
-                speed: 1.2,
-                curve: 1.3,
-                essential: true,
-            });
-        }
+            if (currentZoom < 15.5) {
+                // Si estamos lejos, cerramos cualquier popup previo y volamos primero al lote
+                if (currentPopup) {
+                    currentPopup.remove();
+                    currentPopup = null;
+                }
+                setHighlight(coords);
 
-        if (window.innerWidth > 768) {
-            if (currentPopup) currentPopup.remove();
-            detailEl.classList.remove('hidden');
-            const cBtn = document.getElementById('detail-close');
-            if(cBtn) cBtn.style.display = 'flex';
-            
-            currentPopup = new maplibregl.Popup({
-                closeButton: false,
-                closeOnClick: true,
-                maxWidth: '480px',
-                offset: 14,
-            })
-                .setLngLat(feat.geometry.coordinates)
-                .setDOMContent(detailEl)
-                .addTo(State.map);
-                
-            currentPopup.on('close', () => {
-                clearHighlight();
-                document.body.appendChild(detailEl);
-                detailEl.classList.add('hidden');
-            });
-        } else {
-            document.body.appendChild(detailEl);
-            const cBtn = document.getElementById('detail-close');
-            if(cBtn) cBtn.style.display = 'flex';
-            detailEl.classList.remove('hidden');
+                State.map.flyTo({
+                    center: coords,
+                    zoom: 16.8,
+                    offset: isMobile ? [0, -120] : [0, 80],
+                    speed: 1.3,
+                    curve: 1.25,
+                    essential: true,
+                });
+
+                // Abrir la tarjeta únicamente cuando el vuelo termine
+                State.map.once('moveend', () => {
+                    showCardAtCoords(coords);
+                });
+            } else {
+                // Si ya estamos en zoom de calle (>= 15.5), centrado suave y apertura instantánea
+                State.map.easeTo({
+                    center: coords,
+                    offset: isMobile ? [0, -120] : [0, 80],
+                    duration: 350,
+                });
+                showCardAtCoords(coords);
+            }
         }
-        
-        setHighlight(feat.geometry.coordinates);
     }
 
     function closeDetail() {

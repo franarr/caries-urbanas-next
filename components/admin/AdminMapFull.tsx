@@ -157,28 +157,6 @@ export function AdminMapFull({ items, onSelectLote }: AdminMapFullProps) {
     });
   }, [items, selectedId]);
 
-  // Volar hacia el lote seleccionado cuando cambia
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !selectedId) return;
-
-    const fly = () => {
-      const target = items.find((i) => i.id === selectedId);
-      if (target && target.lat != null && target.lng != null) {
-        map.flyTo({
-          center: [target.lng, target.lat],
-          zoom: 16.5,
-          speed: 1.4,
-          curve: 1.2,
-          essential: true,
-        });
-      }
-    };
-
-    if (map.isStyleLoaded()) fly();
-    else map.once('load', fly);
-  }, [selectedId, items]);
-
   return (
     <div className="full-map-container">
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />

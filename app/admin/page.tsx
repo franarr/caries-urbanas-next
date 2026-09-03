@@ -14,7 +14,7 @@ import { AdminMapFull } from '@/components/admin/AdminMapFull';
 export default function AdminPage() {
   const [currentTab, setCurrentTab] = useState<'relevamientos' | 'mapa'>('relevamientos');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { filtros } = useAdminStore();
+  const { filtros, selectRelevamiento } = useAdminStore();
 
   // Catálogos oficiales de distritos y tipos
   const { data: catalogos } = useQuery({
@@ -86,7 +86,10 @@ export default function AdminPage() {
         {currentTab === 'mapa' && (
           <AdminMapFull
             items={mapItems}
-            onSelectLote={() => setIsModalOpen(true)}
+            onSelectLote={(item) => {
+              selectRelevamiento(item.id);
+              setIsModalOpen(true);
+            }}
           />
         )}
       </main>
