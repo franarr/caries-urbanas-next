@@ -98,19 +98,50 @@ export function AdminFigmaMap({ items, selectedId, onSelectCase }: AdminFigmaMap
         },
       });
 
-      // Cursor pointer al pasar sobre los puntos
-      map.on('mouseenter', 'figma-points-dot', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'figma-points-dot', () => {
-        map.getCanvas().style.cursor = '';
+      // Popup emergente al hacer hover
+      const hoverPopup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 8,
+        className: 'figma-hover-popup',
       });
 
-      // Clic en punto -> selecciona caso
+      // Cursor pointer y tooltip al pasar sobre los puntos (hover)
+      map.on('mouseenter', 'figma-points-dot', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features[0]) {
+          const feat = e.features[0];
+          const props = feat.properties;
+          const coords = (feat.geometry as any).coordinates.slice();
+
+          const caseNum = `#${String(props?.nro || props?.id).padStart(4, '0')}`;
+          const address = props?.direccion || 'Sin dirección';
+
+          const html = `
+            <div class="hover-tooltip">
+              <div class="hover-top">
+                <span class="hover-id">Caso ${caseNum}</span>
+                <span class="hover-action">Ver archivo ›</span>
+              </div>
+              <div class="hover-address">${address}</div>
+            </div>
+          `;
+
+          hoverPopup.setLngLat(coords).setHTML(html).addTo(map);
+        }
+      });
+
+      map.on('mouseleave', 'figma-points-dot', () => {
+        map.getCanvas().style.cursor = '';
+        hoverPopup.remove();
+      });
+
+      // Clic en punto -> selecciona caso y abre el archivo
       map.on('click', 'figma-points-dot', (e) => {
         if (e.features && e.features[0]) {
           const id = e.features[0].properties?.id;
           if (id) {
+            hoverPopup.remove();
             onSelectRef.current(Number(id));
           }
         }
