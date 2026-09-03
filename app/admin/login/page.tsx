@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login } from '@/lib/api-admin';
+import { login, loginDemo } from '@/lib/api-admin';
 import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -105,14 +105,44 @@ export default function AdminLoginPage() {
               </>
             ) : (
               <>
-                <span>Ingresar al panel</span>
+                <span>Ingresar con cuenta oficial</span>
                 <ArrowRight size={16} />
               </>
             )}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+        <div style={{ margin: '20px 0 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            O para demostración
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            loginDemo('admin');
+            router.push('/admin');
+          }}
+          className="btn-secondary btn-full"
+          style={{
+            fontSize: '0.875rem',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            borderColor: 'var(--accent)',
+            color: 'var(--accent-dark)',
+            backgroundColor: 'var(--accent-10)',
+          }}
+        >
+          <span>Explorar en Modo Prototipo →</span>
+        </button>
+
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
           <ShieldCheck size={14} color="var(--green)" />
           <span>Acceso restringido · Sesiones auditadas</span>
         </div>

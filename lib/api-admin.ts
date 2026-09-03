@@ -88,6 +88,11 @@ export async function login(email: string, contrasena: string): Promise<LoginRes
   return data;
 }
 
+export function loginDemo(rol: 'admin' | 'tecnico' | 'lectura' = 'admin') {
+  setToken('demo-token');
+  setUser('Observador Técnico', rol);
+}
+
 // Catálogos
 export interface CatalogoItem { id: number; nombre: string; }
 export interface Catalogos {
@@ -97,7 +102,33 @@ export interface Catalogos {
   zonas_inmobiliarias: CatalogoItem[];
 }
 
-export function fetchCatalogos() {
+export async function fetchCatalogos(): Promise<Catalogos> {
+  if (getToken() === 'demo-token') {
+    return {
+      tipos_relevamiento: [{ id: 1, nombre: 'carie' }, { id: 2, nombre: 'vacancia' }],
+      distritos: [
+        { id: 1, nombre: 'CENTRO' },
+        { id: 2, nombre: 'ESTE' },
+        { id: 3, nombre: 'LA COSTA' },
+        { id: 4, nombre: 'NORESTE' },
+        { id: 5, nombre: 'NOROESTE' },
+        { id: 6, nombre: 'NORTE' },
+        { id: 7, nombre: 'OESTE' },
+        { id: 8, nombre: 'SUROESTE' },
+      ],
+      vecinales: [
+        { id: 1, nombre: 'Barrio Sur' },
+        { id: 2, nombre: 'Candioti Sur' },
+        { id: 3, nombre: 'Candioti Norte' },
+      ],
+      zonas_inmobiliarias: [
+        { id: 1, nombre: '1' },
+        { id: 2, nombre: '2' },
+        { id: 3, nombre: '3' },
+        { id: 4, nombre: '4' },
+      ],
+    };
+  }
   return apiAdmin<Catalogos>('/admin/catalogos');
 }
 
@@ -132,7 +163,71 @@ export interface ListadoParams {
   q?: string;
 }
 
-export function fetchRelevamientos(params: ListadoParams = {}) {
+// Cache local de GeoJSON para modo demo
+let demoGeoJsonCache: any = null;
+
+export async function fetchRelevamientos(params: ListadoParams = {}): Promise<ListadoResponse> {
+  if (getToken() === 'demo-token') {
+    if (!demoGeoJsonCache) {
+      const res = await fetch(`${API_URL}/public/inmuebles.geojson`);
+      demoGeoJsonCache = await res.json();
+    }
+
+    let list: any[] = demoGeoJsonCache.features || [];
+
+    // Filtros
+    if (params.q) {
+      const q = params.q.toLowerCase().trim();
+      list = list.filter((f) =>
+        (f.properties.direccion || '').toLowerCase().includes(q) ||
+        (f.properties.nombre || '').toLowerCase().includes(q) ||
+        (f.properties.distrito || '').toLowerCase().includes(q) ||
+        String(f.properties.nro_relevamiento || f.id).includes(q)
+      );
+    }
+
+    if (params.estado) {
+      list = list.filter((f) => (f.properties.estado_registro || 'carga') === params.estado);
+    }
+
+    if (params.tipo) {
+      list = list.filter((f) => f.properties.tipo === params.tipo);
+    }
+
+    if (params.distrito_id) {
+      const distritosMap: Record<number, string> = {
+        1: 'CENTRO', 2: 'ESTE', 3: 'LA COSTA', 4: 'NORESTE',
+        5: 'NOROESTE', 6: 'NORTE', 7: 'OESTE', 8: 'SUROESTE'
+      };
+      const dName = distritosMap[params.distrito_id];
+      if (dName) {
+        list = list.filter((f) => f.properties.distrito === dName);
+      }
+    }
+
+    const total = list.length;
+    const pagina = params.pagina || 1;
+    const tamanio = params.tamanio || 25;
+    const start = (pagina - 1) * tamanio;
+    const paged = list.slice(start, start + tamanio);
+
+    const items: RelevamientoResumen[] = paged.map((f: any) => ({
+      id: f.id,
+      nro_relevamiento: f.properties.nro_relevamiento,
+      tipo: f.properties.tipo,
+      nombre: f.properties.nombre,
+      direccion: f.properties.direccion,
+      distrito: f.properties.distrito,
+      estado_registro: f.properties.estado_registro || 'carga',
+      patrimonio: f.properties.patrimonio || false,
+      lat: f.geometry?.coordinates ? f.geometry.coordinates[1] : null,
+      lng: f.geometry?.coordinates ? f.geometry.coordinates[0] : null,
+      actualizado_en: f.properties.actualizado_en || new Date().toISOString(),
+    }));
+
+    return { total, pagina, tamanio, items };
+  }
+
   const query = new URLSearchParams();
   if (params.pagina) query.set('pagina', String(params.pagina));
   if (params.tamanio) query.set('tamanio', String(params.tamanio));
@@ -236,7 +331,95 @@ export interface FichaCompleta {
   titularidad_calidad?: TitularidadCalidad[];
 }
 
-export function fetchFichaCompleta(id: number) {
+export async function fetchFichaCompleta(id: number): Promise<FichaCompleta> {
+  if (getToken() === 'demo-token') {
+    // Intentar buscar los datos públicos reales primero
+    let publicData: any = null;
+    try {
+      const res = await fetch(`${API_URL}/public/inmuebles/${id}`);
+      if (res.ok) publicData = await res.json();
+    } catch {}
+
+    return {
+      id,
+      nro_relevamiento: publicData?.nro_relevamiento ?? id,
+      tipo: publicData?.tipo ?? 'carie',
+      nombre: publicData?.nombre ?? 'Inmueble relevado',
+      direccion: publicData?.direccion ?? 'San Martín 1234',
+      descripcion: publicData?.descripcion ?? 'Predio en estado de abandono sin mantenimiento ni cerramiento reglamentario.',
+      distrito: publicData?.distrito ?? 'CENTRO',
+      vecinal: publicData?.vecinal ?? 'Barrio Sur',
+      zona_inmobiliaria: publicData?.zona_inmobiliaria ?? '4',
+      rou: publicData?.rou ?? 'R6',
+      patrimonio: publicData?.patrimonio ?? false,
+      patrimonio_tipo: publicData?.patrimonio_tipo ?? 'ninguno',
+      manzana: publicData?.manzana ?? '0123',
+      superficie_terreno_m2: '480.00',
+      sup_construida_m2: '312.50',
+      plano_registrado_anio: 1974,
+      estado_registro: publicData?.estado_registro ?? 'carga',
+      motivo_baja: null,
+      lat: publicData?.lat ?? -31.63822,
+      lng: publicData?.lng ?? -60.70241,
+      geo_fuente: publicData?.geo_fuente ?? 'tablero',
+      geo_verificado: publicData?.geo_verificado ?? true,
+      activo: true,
+      fichaje: false,
+      creado_en: publicData?.creado_en ?? '2026-08-28T14:02:00.000Z',
+      actualizado_en: publicData?.actualizado_en ?? new Date().toISOString(),
+      padrones: ['11588', '11589'],
+      partidas: ['1010203040506070'],
+      proyectos: [
+        {
+          id: 3,
+          numero_expediente: 'CM-2025-0412',
+          titulo: 'Declaración de Interés Municipal y Tratamiento de Inmuebles en Desuso',
+          estado: 'Comisión de Gobierno',
+          numero_resolucion: null,
+        },
+      ],
+      datos_pendientes: [
+        { campo: 'partida_inmobiliaria', estado: 'pendiente', nota: 'Aguardando cruce con API provincial' },
+      ],
+      historial_estados: [
+        { estado: 'carga', fecha: '2026-08-28T00:00:00.000Z', nota: 'Alta inicial desde planilla oficial.', usuario: 'Solange' },
+      ],
+      titulares: [
+        {
+          titular_id: 88,
+          nombre: 'PÉREZ JUAN CARLOS',
+          tipo: 'fisica',
+          dni: '12345678',
+          cuit: '20123456789',
+          domicilio_fiscal: 'San Martín 1234, Santa Fe',
+          estado_supervivencia: 'en_vida',
+          porcentaje: '50.0000',
+          porcentaje_valido: true,
+          rol: 'condomino',
+          fuente: 'provincial_scit',
+        },
+        {
+          titular_id: 89,
+          nombre: 'PÉREZ MARÍA ELENA',
+          tipo: 'fisica',
+          dni: '14567890',
+          cuit: '27145678904',
+          domicilio_fiscal: '25 de Mayo 1900, Santa Fe',
+          estado_supervivencia: 'fallecido',
+          porcentaje: '50.0000',
+          porcentaje_valido: true,
+          rol: 'sucesion',
+          fuente: 'provincial_scit',
+        },
+      ],
+      contactos: [
+        { id: 5, titular_id: null, nombre: 'Vecino lindero (1236)', vinculo: 'vecino', tipo: 'telefono', valor: '342-5551234', nota: 'Denunció malezas' },
+      ],
+      titularidad_calidad: [
+        { fuente: 'provincial_scit', cantidad_titulares: 2, suma_porcentaje: '100.0000', suma_valida: true, porcentajes_validos: true },
+      ],
+    };
+  }
   return apiAdmin<FichaCompleta>(`/admin/relevamientos/${id}/completo`);
 }
 
@@ -262,7 +445,63 @@ export interface DenunciasResponse {
   items: Denuncia[];
 }
 
-export function fetchDenuncias(params: { pagina?: number; tamanio?: number; estado?: string } = {}) {
+export async function fetchDenuncias(params: { pagina?: number; tamanio?: number; estado?: string } = {}): Promise<DenunciasResponse> {
+  if (getToken() === 'demo-token') {
+    const demoItems: Denuncia[] = [
+      {
+        id: 14,
+        origen: 'web',
+        tipo: 'baldio',
+        estado: 'pendiente',
+        direccion: 'Rivadavia al 3400',
+        descripcion: 'Terreno baldío con pastos de más de 1.5m de altura, acumulación de basura y roedores.',
+        lat: -31.64,
+        lng: -60.70,
+        relevamiento_id: null,
+        tiene_contacto: true,
+        creado_en: '2026-09-02T19:20:00.000Z',
+      },
+      {
+        id: 13,
+        origen: 'web',
+        tipo: 'casa_abandonada',
+        estado: 'en_curso',
+        direccion: 'San Jerónimo 2150',
+        descripcion: 'Inmueble con fachada deteriorada y riesgo de desprendimiento de mampostería sobre peatones.',
+        lat: -31.648,
+        lng: -60.71,
+        relevamiento_id: 455,
+        tiene_contacto: false,
+        creado_en: '2026-09-01T15:10:00.000Z',
+      },
+      {
+        id: 12,
+        origen: 'linea_0800',
+        tipo: 'ambiental',
+        estado: 'resuelta',
+        direccion: 'Bv. Pellegrini y 4 de Enero',
+        descripcion: 'Acumulación de agua estancada en estructura a medio demoler. Desinfección efectuada.',
+        lat: -31.632,
+        lng: -60.705,
+        relevamiento_id: 12,
+        tiene_contacto: true,
+        creado_en: '2026-08-30T11:45:00.000Z',
+      },
+    ];
+
+    let filtered = demoItems;
+    if (params.estado) {
+      filtered = filtered.filter((d) => d.estado === params.estado);
+    }
+
+    return {
+      total: filtered.length,
+      pagina: params.pagina || 1,
+      tamanio: params.tamanio || 25,
+      items: filtered,
+    };
+  }
+
   const query = new URLSearchParams();
   if (params.pagina) query.set('pagina', String(params.pagina));
   if (params.tamanio) query.set('tamanio', String(params.tamanio));
