@@ -7,6 +7,7 @@ import { fetchCatalogos, fetchRelevamientos, clearSession, getUser, Relevamiento
 import { AdminFigmaDashboard } from '@/components/admin/AdminFigmaDashboard';
 import { AdminFigmaFicha } from '@/components/admin/AdminFigmaFicha';
 import { AdminFigmaNotas, NotaInterna } from '@/components/admin/AdminFigmaNotas';
+import { AdminCrudModal } from '@/components/admin/AdminCrudModal';
 
 // Notas base institucionales
 const DEFAULT_NOTES: NotaInterna[] = [
@@ -33,12 +34,21 @@ const DEFAULT_NOTES: NotaInterna[] = [
   },
 ];
 
+// Tipo para el estado del modal CRUD
+type CrudState =
+  | { open: false }
+  | { open: true; mode: 'add'; data?: undefined }
+  | { open: true; mode: 'edit'; data: RelevamientoResumen };
+
 export default function AdminPage() {
   const router = useRouter();
   const [currentView, setCurrentView] = useState<'dashboard' | 'caso' | 'notas'>('dashboard');
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [userName, setUserName] = useState('administrador');
   const [notesStore, setNotesStore] = useState<Record<number, NotaInterna[]>>({});
+  const [crudState, setCrudState] = useState<CrudState>({ open: false });
+  const [protoItems, setProtoItems] = useState<RelevamientoResumen[]>([]); // ítems agregados solo en sesión
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const u = getUser();
@@ -46,6 +56,13 @@ export default function AdminPage() {
       setUserName(u.nombre);
     }
   }, []);
+
+  // Toast auto-cierre
+  useEffect(() => {
+    if (!toastMsg) return;
+    const t = setTimeout(() => setToastMsg(null), 3500);
+    return () => clearTimeout(t);
+  }, [toastMsg]);
 
   // Catálogos oficiales
   const { data: catalogos } = useQuery({
@@ -105,7 +122,9 @@ export default function AdminPage() {
   });
 
   const tableItems: RelevamientoResumen[] = relevamientosData?.items || [];
-  const items: RelevamientoResumen[] = (allMapItems && allMapItems.length > 0) ? allMapItems : tableItems;
+  const baseItems: RelevamientoResumen[] = (allMapItems && allMapItems.length > 0) ? allMapItems : tableItems;
+  // Fusionar datos reales con los items de prototipo de la sesión
+  const items: RelevamientoResumen[] = [...baseItems, ...protoItems];
 
   const handleSelectCase = (id: number) => {
     setSelectedCaseId(id);
@@ -142,8 +161,34 @@ export default function AdminPage() {
     }));
   };
 
-  const totalCount = items.length || 383;
-  const enRevisionCount = items.filter((i) => i.estado_registro === 'en_revision').length || 44;
+  // CRUD Prototipo — solo en sesión local, NO toca la base de datos
+  const handleCrudSave = (data: any) => {
+    if (data.id) {
+      // Edición: actualizar estado local (no modifica base real)
+      setProtoItems((prev) => prev.map((item) => item.id === data.id ? { ...item, ...data } : item));
+      setToastMsg('Cambios guardados en la sesión (prototipo).');
+    } else {
+      // Agregar: crear nuevo ítem local con ID ficticio grande para no chocar con los reales
+      const newId = Date.now();
+      const newItem: RelevamientoResumen = {
+        id: newId,
+        nro_relevamiento: newId,
+        tipo: data.tipo,
+        nombre: data.direccion,
+        direccion: data.direccion,
+        distrito: data.distrito,
+        estado_registro: 'carga',
+        patrimonio: Boolean(data.patrimonio),
+        lat: null,
+        lng: null,
+        actualizado_en: new Date().toISOString(),
+      };
+      setProtoItems((prev) => [newItem, ...prev]);
+      setToastMsg('Inmueble agregado en esta sesión (prototipo).');
+    }
+  };
+
+  const totalCount = items.length;
 
   return (
     <div className="admin-shell">
@@ -155,14 +200,29 @@ export default function AdminPage() {
         </div>
 
         <div className="header-summary">
-          <span>Total inmuebles: <strong>{totalCount}</strong></span>
-          <span className="sep">·</span>
-          <span>En seguimiento: <strong>{enRevisionCount}</strong></span>
+          <span>Total: <strong>{totalCount}</strong></span>
           <span className="sep">·</span>
           <span>Santa Fe</span>
+          {protoItems.length > 0 && (
+            <>
+              <span className="sep">·</span>
+              <span style={{ color: '#B5451B', fontWeight: 600 }}>{protoItems.length} prot.</span>
+            </>
+          )}
         </div>
 
         <div className="header-right">
+          {/* Botón agregar solo disponible en el dashboard */}
+          {currentView === 'dashboard' && (
+            <button
+              type="button"
+              onClick={() => setCrudState({ open: true, mode: 'add' })}
+              className="btn-black"
+              style={{ height: '28px', padding: '0 12px', fontSize: '11.5px', borderRadius: '4px' }}
+            >
+              + Agregar
+            </button>
+          )}
           <span className="header-user">Usuario: <strong>{userName}</strong></span>
           <button type="button" onClick={handleLogout} className="header-logout-btn">
             Cerrar sesión
@@ -190,6 +250,11 @@ export default function AdminPage() {
               notesCount={caseNotes.length}
               onBack={() => setCurrentView('dashboard')}
               onGoToNotes={() => setCurrentView('notas')}
+              onEdit={
+                activeCase
+                  ? () => setCrudState({ open: true, mode: 'edit', data: { ...activeCase, direccion: activeCase.direccion ?? '' } })
+                  : undefined
+              }
             />
           </div>
         )}
@@ -211,6 +276,23 @@ export default function AdminPage() {
         <span>Municipalidad de la Ciudad de Santa Fe · Observatorio Urbano</span>
         <span>Dirección General de Catastro y Planeamiento</span>
       </footer>
+
+      {/* Modal CRUD Prototipo */}
+      {crudState.open && (
+        <AdminCrudModal
+          mode={crudState.mode}
+          initialData={crudState.mode === 'edit' ? crudState.data : undefined}
+          onClose={() => setCrudState({ open: false })}
+          onSave={handleCrudSave}
+        />
+      )}
+
+      {/* Toast de confirmación */}
+      {toastMsg && (
+        <div className="toast-success">
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }
