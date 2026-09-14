@@ -6,9 +6,10 @@ import { AdminFigmaMap } from './AdminFigmaMap';
 
 interface AdminFigmaDashboardProps {
   items: RelevamientoResumen[];
-  catalogos?: Catalogos;
+  catalogos: any;
   selectedId: number | null;
   onSelectCase: (id: number) => void;
+  onAddCase?: () => void;
 }
 
 export function AdminFigmaDashboard({
@@ -16,6 +17,7 @@ export function AdminFigmaDashboard({
   catalogos,
   selectedId,
   onSelectCase,
+  onAddCase,
 }: AdminFigmaDashboardProps) {
   const [search, setSearch] = useState('');
   const [selectedDistrito, setSelectedDistrito] = useState<string>('todos');
@@ -138,6 +140,17 @@ export function AdminFigmaDashboard({
             selectedId={selectedId}
             onSelectCase={onSelectCase}
           />
+          {/* FAB (Floating Action Button) para agregar caso, posicionado sobre el mapa */}
+          {onAddCase && (
+            <button
+              type="button"
+              className="fab-add-btn"
+              onClick={onAddCase}
+              aria-label="Agregar Inmueble"
+            >
+              <span className="fab-icon">+</span>
+            </button>
+          )}
         </div>
       </section>
 

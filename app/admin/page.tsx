@@ -212,17 +212,7 @@ export default function AdminPage() {
         </div>
 
         <div className="header-right">
-          {/* Botón agregar solo disponible en el dashboard */}
-          {currentView === 'dashboard' && (
-            <button
-              type="button"
-              onClick={() => setCrudState({ open: true, mode: 'add' })}
-              className="btn-black"
-              style={{ height: '28px', padding: '0 12px', fontSize: '11.5px', borderRadius: '4px' }}
-            >
-              + Agregar
-            </button>
-          )}
+          {/* Botón agregar movido a FAB flotante en desktop/mobile */}
           <span className="header-user">Usuario: <strong>{userName}</strong></span>
           <button type="button" onClick={handleLogout} className="header-logout-btn">
             Cerrar sesión
@@ -239,6 +229,7 @@ export default function AdminPage() {
               catalogos={catalogos}
               selectedId={selectedCaseId}
               onSelectCase={handleSelectCase}
+              onAddCase={() => setCrudState({ open: true, mode: 'add' })}
             />
           </div>
         )}

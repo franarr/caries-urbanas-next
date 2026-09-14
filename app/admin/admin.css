@@ -1476,19 +1476,13 @@ body {
   .admin-footer {
     display: none;
   }
-
-  /* Ajustar la posición del FAB en mobile para que esté por encima de la cajonera (drawer) */
-  .fab-add-btn {
-    bottom: 90px; /* 68px del drawer peek + 22px de margen */
-    right: 20px;
-  }
 }
 
 /* ---------- FLOATING ACTION BUTTON (FAB) ---------- */
 .fab-add-btn {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -1520,3 +1514,11 @@ body {
   line-height: 1;
   margin-top: -2px; /* Alineación óptica del + */
 }
+
+@media (max-width: 768px) {
+  .fab-add-btn {
+    bottom: 100px; /* 68px drawer + 32px padding */
+    right: 20px;
+  }
+}
+
