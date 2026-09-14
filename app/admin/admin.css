@@ -1299,6 +1299,7 @@ body {
     padding: 0 !important;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    height: calc(100vh - 48px);
   }
 
   /* El dashboard se convierte en mapa a pantalla completa + drawer inferior */
@@ -1446,10 +1447,10 @@ body {
     font-size: 11.5px;
   }
 
-  /* Vistas de Ficha y Notas en mobile */
   .case-view,
   .notes-view {
     padding: 16px;
+    padding-bottom: 80px; /* Espacio extra para que no quede pegado abajo */
   }
 
   .case-header {
@@ -1475,4 +1476,47 @@ body {
   .admin-footer {
     display: none;
   }
+
+  /* Ajustar la posición del FAB en mobile para que esté por encima de la cajonera (drawer) */
+  .fab-add-btn {
+    bottom: 90px; /* 68px del drawer peek + 22px de margen */
+    right: 20px;
+  }
+}
+
+/* ---------- FLOATING ACTION BUTTON (FAB) ---------- */
+.fab-add-btn {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 200;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+}
+
+.fab-add-btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: var(--btn-primary-hover);
+}
+
+.fab-add-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.fab-icon {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -2px; /* Alineación óptica del + */
 }
